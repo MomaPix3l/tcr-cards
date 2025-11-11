@@ -103,6 +103,7 @@
     box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);
   }
   .holo .img{ outline:2px dashed var(--c-legend); outline-offset:4px }
+
   .desc {
   color: var(--muted);
   font-size: 14px;
@@ -110,7 +111,13 @@
   text-align: center;
   margin-top: 6px;
   line-height: 1.3;
+  background: linear-gradient(90deg, #7dd3fc, #c084fc, #00C2C7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 600;
+  filter: drop-shadow(0 0 6px rgba(0,194,199,0.25));
 }
+
 
   .meta{ display:flex; justify-content:space-between; align-items:center; color:var(--muted); font-size:12px; margin-top:6px }
   .play{
