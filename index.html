@@ -271,7 +271,7 @@ const fmt = s => { const m=Math.floor(s/60), sec=s%60; return (m?m+'m ':'')+sec+
 async function apiJSON(url,opts){ const r=await fetch(url,opts); return r.json(); }
 async function load(){
   const u=getUser(), p=getPin();
-  if(!u){ notice.textContent='Enter your Twitch name and press Save.'; grid.innerHTML=''; tabs.innerHTML=''; stats.innerHTML=''; return; }
+  if(!u){ notice.textContent='Enter your Twitch name and press Enter.'; grid.innerHTML=''; tabs.innerHTML=''; stats.innerHTML=''; return; }
   notice.textContent='Loading…';
   const [inv,sum] = await Promise.all([
     apiJSON(`${API}?action=inventory&user=${encodeURIComponent(u)}&pin=${encodeURIComponent(p)}`),
@@ -288,7 +288,7 @@ async function play(cardId){
 }
 
 /* wire controls */
-$('save').onclick = ()=>{ setUser($('uname').value); setPin($('pin').value); toast('Saved'); load(); };
+$('save').onclick = ()=>{ setUser($('uname').value); setPin($('pin').value); toast('loading'); load(); };
 $('refresh').onclick = ()=> load();
 $('search').addEventListener('input', ()=> renderGrid());
 $('onlyHolo').addEventListener('change', ()=> renderGrid());
