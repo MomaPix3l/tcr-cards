@@ -1,0 +1,65 @@
+/* ===================== 2) VIEWER WEB PAGE (index.html) =====================
+.cool{font-size:12px;color:var(--muted)}
+.img{width:100%;height:140px;object-fit:contain;border-radius:10px;background:#070b11;margin:6px 0}
+.holo{outline:2px dashed #fbbf24;outline-offset:4px}
+</style>
+</head>
+<body>
+<header>
+<label>Twitch name:</label>
+<input id="uname" placeholder="e.g. momapix3l"/>
+<label>PIN (optional):</label>
+<input id="pin" placeholder="if set by streamer"/>
+<button id="save">Save</button>
+<button id="refresh">Refresh</button>
+<span id="msg" style="margin-left:10px;color:#a8b3c7"></span>
+</header>
+<main>
+<div id="grid" class="grid"></div>
+</main>
+<script>
+const API='https://script.google.com/macros/s/AKfycbyvVrFPuiT2fvXne7E0Q9RuWowiWdlmtkTLfrQM1M7mWq5PR9zeXLA-d3NwqSoyrkpd/exec'; // ends with /exec
+const getUser=()=> (localStorage.getItem('tcr_user')||'').trim().toLowerCase();
+const getPin =()=> (localStorage.getItem('tcr_pin')||'').trim();
+const setUser=(u)=> localStorage.setItem('tcr_user', (u||'').trim().toLowerCase());
+const setPin =(p)=> localStorage.setItem('tcr_pin', (p||'').trim());
+
+
+save.onclick = ()=>{ setUser(uname.value); setPin(pin.value); msg.textContent='Saved.'; load(); };
+refresh.onclick = ()=> load();
+
+
+document.addEventListener('DOMContentLoaded', ()=>{ uname.value=getUser(); pin.value=getPin(); load(); });
+
+
+async function load(){
+const u=getUser(); const p=getPin(); if(!u){ grid.innerHTML='Enter your Twitch name and Save.'; return; }
+msg.textContent='Loading...';
+const inv = await fetch(`${API}?action=inventory&user=${encodeURIComponent(u)}&pin=${encodeURIComponent(p)}`).then(r=>r.json());
+if(!inv.ok){ grid.innerHTML='Error: '+(inv.error||'loading'); msg.textContent=''; return; }
+grid.innerHTML='';
+const color = r=>({common:'#8ab4f8', rare:'#7dd3fc', epic:'#c084fc', legendary:'#fbbf24'})[r]||'#ccc';
+inv.items.forEach(it=>{
+const el=document.createElement('div'); el.className='card';
+const isHolo = it.cardId.endsWith(':holo');
+el.innerHTML=`
+<div class='title' style='color:${color(it.rarity)}'>${it.name}${isHolo?' ✨':''} <span style='font-size:12px;color:#a8b3c7'>(${it.rarity})</span></div>
+${it.imageUrl?`<img class='img ${isHolo?'holo':''}' src='${it.imageUrl}' alt='${it.name}'/>`:''}
+<div>Owned: <strong>${it.qty}</strong></div>
+<div class='cool'>${it.remain>0?('Cooldown: '+it.remain+'s'):''}</div>
+<button ${it.remain>0||it.qty<=0?'disabled':''}>Play</button>`;
+el.querySelector('button').onclick=()=> play(u,p,it.cardId);
+grid.appendChild(el);
+});
+msg.textContent='';
+}
+
+
+async function play(user, pin, cardId){
+msg.textContent='Playing...';
+const res = await fetch(`${API}?action=redeem`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user, cardId })}).then(r=>r.json());
+if(res.ok){ msg.textContent='Redeemed!'; load(); } else { msg.textContent='Error: '+res.error; }
+}
+</script>
+</body>
+</html>
