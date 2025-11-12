@@ -197,6 +197,26 @@ const getPin =()=> (localStorage.getItem('tcr_pin')||'').trim();
 const setUser=u=> localStorage.setItem('tcr_user',(u||'').trim().toLowerCase());
 const setPin =p=> localStorage.setItem('tcr_pin',(p||'').trim());
 
+  function jsonp(url, params = {}) {
+  return new Promise((resolve, reject) => {
+    const cb = 'tcr_cb_' + Math.random().toString(36).slice(2);
+    params.cb = cb;
+    const qs = Object.entries(params)
+      .map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+      .join('&');
+    const full = url + (url.includes('?') ? '&' : '?') + qs;
+
+    const s = document.createElement('script');
+    s.src = full; s.async = true;
+
+    window[cb] = (data) => { try { resolve(data); } finally { delete window[cb]; s.remove(); } };
+    s.onerror = () => { delete window[cb]; s.remove(); reject(new Error('JSONP load error')); };
+
+    document.head.appendChild(s);
+  });
+}
+
+
 /* ============== ui + state ============== */
 const $ = id => document.getElementById(id);
 const grid=$('grid'), tabs=$('tabs'), stats=$('stats'), notice=$('notice');
@@ -297,10 +317,17 @@ async function load(){
   renderTabs(); renderStats(); renderGrid(); notice.textContent='';
 }
 async function play(cardId){
-  const u=getUser(); toast('Playing…', 1200);
-  const res = await apiJSON(`${API}?action=redeem`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user:u, cardId }) });
-  if(res.ok){ toast('Redeemed!'); load(); } else { toast('Error: '+res.error, 2400); }
+  const u = getUser();
+  toast('Playing…', 1200);
+  try{
+    const res = await jsonp(API, { action: 'redeem', user: u, cardId });
+    if(res && res.ok){ toast('Redeemed!'); load(); }
+    else { toast('Error: ' + (res && res.error || 'failed'), 2400); }
+  }catch(e){
+    toast('Network error', 2400);
+  }
 }
+
 
 /* wire controls */
 $('save').onclick = ()=>{ setUser($('uname').value); setPin($('pin').value); toast('loading'); load(); };
