@@ -124,6 +124,77 @@
   #lastPack b{ color:var(--text); }
   #lastPack .cardLine{ margin-top:4px; }
 
+  #packAnim{
+  position:fixed;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:40;
+  pointer-events:none;
+}
+
+.pack-anim-box{
+  width:260px;
+  height:360px;
+  border-radius:18px;
+  background:linear-gradient(135deg,#111827 0%,#312e81 40%,#7c3aed 70%,#fbbf24 100%);
+  box-shadow:0 0 60px rgba(0,0,0,.8), 0 0 30px rgba(124,58,237,.8);
+  position:relative;
+  overflow:hidden;
+  animation:pack-pop 600ms ease-out forwards;
+}
+
+.pack-anim-inner{
+  position:absolute;
+  inset:12px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.3);
+  background:radial-gradient(circle at 20% 0%,rgba(255,255,255,.15),transparent 55%),
+             radial-gradient(circle at 80% 100%,rgba(0,0,0,.4),rgba(0,0,0,.9));
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  color:#e5e7eb;
+  font-family:Outfit,system-ui,sans-serif;
+}
+
+.pack-anim-title{
+  font-size:20px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  margin-bottom:6px;
+}
+.pack-anim-sub{
+  font-size:13px;
+  opacity:.85;
+}
+
+.pack-anim-shine{
+  position:absolute;
+  inset:-40%;
+  background:linear-gradient(120deg,transparent 0%,rgba(255,255,255,.9) 40%,transparent 70%);
+  transform:translateX(-100%);
+  animation:pack-shine 900ms ease-out forwards 280ms;
+  mix-blend-mode:screen;
+}
+
+@keyframes pack-pop{
+  0%{ transform:scale(.3) rotate(-8deg); opacity:0; }
+  60%{ transform:scale(1.05) rotate(2deg); opacity:1; }
+  100%{ transform:scale(1) rotate(0deg); opacity:1; }
+}
+
+@keyframes pack-shine{
+  0%{ transform:translateX(-100%); opacity:0; }
+  30%{ opacity:1; }
+  100%{ transform:translateX(100%); opacity:0; }
+}
+
+
   /* GRID + CARD */
   .grid{
     display:grid;
@@ -254,7 +325,21 @@
     <button id="openPackBtn" class="btn secondary" disabled>Open Pack</button>
   </div>
 
-  <div id="lastPack" class="lastPack" style="display:none;"></div>
+ <div id="lastPack" class="lastPack" style="display:none;"></div>
+
+<!-- Pack open animation overlay -->
+<div id="packAnim">
+  <div class="pack-anim-box">
+    <div class="pack-anim-inner">
+      <div class="pack-anim-title">OPENING PACK</div>
+      <div class="pack-anim-sub">Summoning your Wonderland cards…</div>
+    </div>
+    <div class="pack-anim-shine"></div>
+  </div>
+</div>
+
+<div class="grid" id="grid">
+
 
   <div class="grid" id="grid">
     <div class="skeleton"></div>
@@ -318,6 +403,8 @@ let INVENTORY = [];
 let ACTIVE    = 'all';
 let timers    = [];
 let SUM       = null;
+let lastPackTimer = null;  // ⬅ for auto-hiding the last pack box
+
 
 /* toast */
 function toast(msg,ms=1800){
@@ -506,32 +593,69 @@ async function openPack(){
     return;
   }
 
-  const btn = $('openPackBtn');
+  const btn     = $('openPackBtn');
+  const animBox = $('packAnim');
+  const lastBox = $('lastPack');
+
+  // disable button while opening
   if (btn) btn.disabled = true;
-  toast('Opening pack…', 1500);
+
+  // clear any previous auto-hide
+  if (lastPackTimer){
+    clearTimeout(lastPackTimer);
+    lastPackTimer = null;
+  }
+
+  // show pack animation
+  if (animBox){
+    animBox.style.display = 'flex';
+  }
+  toast('Opening pack…', 1200);
 
   try{
     const res = await jsonp(API, { action:'openpack', user:u });
+
+    // wait a bit so the animation plays nicely
+    await new Promise(r => setTimeout(r, 900));
+
+    if (animBox){
+      animBox.style.display = 'none';
+    }
+
     if (!res || !res.ok){
       toast('Error: ' + (res && res.error || 'cannot open pack'), 2600);
     } else {
-      const box = $('lastPack');
-      if (box){
+      // build result lines
+      if (lastBox){
         const lines = (res.cards || []).map(c => {
           const rn   = RNAME(c.rarity);
           const holo = c.isHolo ? ' ✨' : '';
           return `<div class="cardLine">• <b>${c.baseId}</b>${holo} <span style="color:${RCOLOR(c.rarity)}">(${rn})</span></div>`;
         }).join('');
-        box.innerHTML = `<div><b>Last pack opened:</b></div>${lines || '<div class="cardLine">Empty pack?</div>'}`;
-        box.style.display = 'block';
+        lastBox.innerHTML = `<div><b>Last pack opened:</b></div>${lines || '<div class="cardLine">Empty pack?</div>'}`;
+        lastBox.style.display = 'block';
+
+        // auto-hide after 30 seconds
+        lastPackTimer = setTimeout(() => {
+          lastBox.style.display = 'none';
+          lastBox.innerHTML = '';
+        }, 30000);
       }
-      await load(); // refresh inventory + stats + pack count
+
+      // refresh inventory + stats + pack count
+      await load();
     }
   } catch(e){
     console.error(e);
+    if (animBox){
+      animBox.style.display = 'none';
+    }
     toast('Network error while opening pack', 2600);
+  } finally {
+    // button will be re-enabled/disabled by renderStats() via SUM.packs
   }
 }
+
 
 /* wire controls */
 document.addEventListener('DOMContentLoaded', () => {
