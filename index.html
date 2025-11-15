@@ -550,15 +550,19 @@ async function load(){
 
   notice.textContent = 'Loading…';
 
-  const [inv,sum] = await Promise.all([
-    apiJSON(`${API}?action=inventory&user=${encodeURIComponent(u)}&pin=${encodeURIComponent(p)}`),
-    apiJSON(`${API}?action=summary&user=${encodeURIComponent(u)}`)
-  ]);
-
-  if(!inv.ok){
+const [inv,sum] = await Promise.all([
+  apiJSON(`${API}?action=inventory&user=${encodeURIComponent(u)}&pin=${encodeURIComponent(p)}`),
+  apiJSON(`${API}?action=summary&user=${encodeURIComponent(u)}&pin=${encodeURIComponent(p)}`)
+]);
+if(!inv.ok){
+  if (inv.error && String(inv.error).indexOf('pin_required_or_invalid') !== -1){
+    notice.textContent = 'PIN incorrect or missing. Use the !cardpin command on stream to get your PIN.';
+  } else {
     notice.textContent = 'Error: ' + (inv.error || 'loading');
-    return;
   }
+  return;
+}
+
 
   INVENTORY = inv.items || [];
   SUM       = sum || null;
@@ -613,7 +617,8 @@ async function openPack(){
   toast('Opening pack…', 1200);
 
   try{
-    const res = await jsonp(API, { action:'openpack', user:u });
+   const res = await jsonp(API, { action:'openpack', user:u, pin:getPin() });
+
 
     // wait a bit so the animation plays nicely
     await new Promise(r => setTimeout(r, 900));
@@ -667,15 +672,25 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnOpen) btnOpen.addEventListener('click', openPack);
 
   $('save').onclick = () => {
-    setUser($('uname').value);
-    setPin($('pin').value);
-    toast('loading');
+    const u = $('uname').value.trim();
+    const p = $('pin').value.trim();
+
+    if (!u || !p){
+      toast('Enter your Twitch name AND PIN', 2200);
+      return;
+    }
+
+    setUser(u);
+    setPin(p);
+    toast('Loading…');
     load();
   };
+
   $('refresh').onclick = () => load();
   $('search').addEventListener('input', () => renderGrid());
   $('onlyHolo').addEventListener('change', () => renderGrid());
 });
+
 </script>
 </body>
 </html>
