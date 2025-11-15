@@ -117,6 +117,30 @@
   font-weight: 600;
   filter: drop-shadow(0 0 6px rgba(0,194,199,0.25));
 }
+  .packsArea{
+  margin: 10px 2px;
+  font-size: 14px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#lastPack{
+  margin: 10px 2px 0 2px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--ring);
+  background: rgba(0,0,0,.35);
+  font-size: 13px;
+}
+#lastPack b{
+  color: var(--text);
+}
+#lastPack .cardLine{
+  margin-top: 4px;
+}
+
 
 
   .meta{ display:flex; justify-content:space-between; align-items:center; color:var(--muted); font-size:12px; margin-top:6px }
@@ -175,7 +199,15 @@
   <div id="notice" class="notice">Enter your Twitch name and press Enter.</div>
 
   <div class="tabs" id="tabs"></div>
-  <div class="stats" id="stats"></div>
+  <div class="stats" id="stats">
+    <div id="packsArea" class="packsArea">
+  You have <span id="packCount">0</span> unopened pack(s).
+  <button id="openPackBtn" class="btn secondary" disabled>Open Pack</button>
+</div>
+
+<div id="lastPack" class="lastPack" style="display:none;"></div>
+
+  </div>
 
   <div class="grid" id="grid">
     <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
@@ -255,6 +287,17 @@ function renderStats(){
     `<div class="stat">Catalog: <b>${SUM.totalCatalog||0}</b></div>`;
 }
 
+  // packs
+  const packSpan = document.getElementById('packCount');
+  const openBtn  = document.getElementById('openPackBtn');
+  const packs = SUM.packs || 0;
+  if (packSpan) packSpan.textContent = packs;
+  if (openBtn) {
+    openBtn.disabled = packs <= 0;
+  }
+
+
+
 /* grid */
 function renderGrid(){
   timers.forEach(clearInterval); timers=[];
@@ -327,6 +370,51 @@ async function play(cardId){
     toast('Network error', 2400);
   }
 }
+  async function openPack(){
+  const u = getUser();
+  if (!u){
+    toast('Set your Twitch name first', 2200);
+    return;
+  }
+  const btn = document.getElementById('openPackBtn');
+  if (btn) btn.disabled = true;
+  toast('Opening pack…', 1500);
+
+  try {
+    const res = await jsonp(API, { action:'openpack', user: u });
+    if (!res || !res.ok){
+      toast('Error: ' + (res && res.error || 'cannot open pack'), 2600);
+    } else {
+      // show results
+      const box = document.getElementById('lastPack');
+      if (box){
+        const lines = (res.cards || []).map(c => {
+          const rn = RNAME(c.rarity);
+          const holo = c.isHolo ? ' ✨' : '';
+          return `<div class="cardLine">• <b>${c.baseId}</b>${holo} <span style="color:${RCOLOR(c.rarity)}">(${rn})</span></div>`;
+        }).join('');
+        box.innerHTML = `<div><b>Last pack opened:</b></div>${lines || '<div class="cardLine">Empty pack?</div>'}`;
+        box.style.display = 'block';
+      }
+      // reload inventory & stats to reflect new cards + pack count
+      await load();
+    }
+  } catch(e){
+    console.error(e);
+    toast('Network error while opening pack', 2600);
+  } finally {
+    // button will be re-enabled/disabled by renderStats() via SUM.packs
+  }
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  $('uname').value=getUser(); $('pin').value=getPin(); load();
+
+  const btnOpen = document.getElementById('openPackBtn');
+  if (btnOpen) btnOpen.addEventListener('click', openPack);
+});
+
+
 
 
 /* wire controls */
