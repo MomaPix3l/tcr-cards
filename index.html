@@ -7,25 +7,49 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
 
+  <link rel="stylesheet" href="css/stream-games-theme.css">
+
+
 <style>
-  :root{
-    --bg:#070b10; --bg2:#0a1321; --panel:#0d1623; --ink:#0b1220;
-    --ring: rgba(255,255,255,.12); --ring2: rgba(255,255,255,.08);
-    --text:#e8f0ff; --muted:#9db0c8; --accent:#00C2C7; --accent2:#7dd3fc;
-    --c-common:#8ab4f8; --c-rare:#7dd3fc; --c-epic:#c084fc; --c-legend:#fbbf24;
-  }
+:root{
+  /* Background + panels (aligned with landing page) */
+  --bg:#05060a;
+  --bg2:#050712;
+  --panel:#101422;
+  --ink:#05060a;
+
+  /* Borders / subtle outlines */
+  --ring: rgba(255,255,255,.12);
+  --ring2: rgba(255,255,255,.06);
+
+  /* Text */
+  --text:#f5f5f5;
+  --muted:#a0a0b5;
+
+  /* Neon accents (same family as landing page) */
+  --accent:#00f5ff;   /* teal */
+  --accent2:#ff00ff;  /* magenta */
+
+  /* Rarity colors tuned to neon palette */
+  --c-common:#a0a0b5;
+  --c-rare:#00f5ff;
+  --c-epic:#9b5bff;
+  --c-legend:#ffb84d;
+}
+
+
+  
   *{ box-sizing:border-box; }
 
-  body{
-    margin:0;
-    color:var(--text);
-    font-family:Outfit, ui-sans-serif, system-ui, Segoe UI, Roboto, Arial;
-    background:
-      radial-gradient(1200px 800px at -10% -10%, #081628 0%, transparent 60%),
-      radial-gradient(900px 600px at 110% 20%, #041a1b 0%, transparent 55%),
-      linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
-    min-height:100dvh;
-  }
+body{
+  margin:0;
+  color:var(--text);
+  font-family:Outfit, ui-sans-serif, system-ui, Segoe UI, Roboto, Arial;
+  background:
+    radial-gradient(circle at top, #111528 0%, #05060a 45%, #000000 100%);
+  min-height:100dvh;
+}
+
 
   /* Floating sparkles backdrop */
   .stars{ position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.25; }
@@ -53,11 +77,16 @@
     box-shadow: inset 0 0 0 1px rgba(255,255,255,.04), 0 18px 60px rgba(0,0,0,.35);
   }
   .brand{ display:flex; gap:12px; align-items:center; }
-  .logo{
-    width:42px; height:42px; border-radius:12px; display:grid; place-items:center;
-    background:conic-gradient(from 220deg, var(--accent), var(--accent2), var(--accent));
-    box-shadow:0 0 36px rgba(0,194,199,.35);
-  }
+
+  
+.logo{
+  width:42px; height:42px; border-radius:12px; display:grid; place-items:center;
+  background:conic-gradient(from 210deg, #00f5ff, #ff00ff, #9b5bff, #00f5ff);
+  box-shadow:0 0 36px rgba(0,245,255,.35);
+}
+
+
+  
   .logo svg{ width:26px; height:26px; fill:#041418; }
   .title{ font-size:22px; font-weight:800; letter-spacing:.3px; }
   .subtitle{ font-size:13px; color:var(--muted); }
@@ -202,12 +231,19 @@
     gap:16px;
     margin-top:12px;
   }
+
   .card{
-    position:relative; overflow:hidden; background:rgba(255,255,255,.04);
-    border:1px solid var(--ring2); border-radius:16px; padding:14px;
-    transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
-    backdrop-filter: blur(3px);
-  }
+  position:relative;
+  overflow:hidden;
+  background:radial-gradient(circle at top left, #171c30 0%, #05060a 48%, #05060a 100%);
+  border:1px solid var(--ring2);
+  border-radius:16px;
+  padding:14px;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+  backdrop-filter: blur(3px);
+}
+
+  
   .card:hover{
     transform:translateY(-2px);
     box-shadow:0 16px 50px rgba(0,0,0,.35);
