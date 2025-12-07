@@ -1,0 +1,188 @@
+:root {
+  --bg: #05060a;
+  --bg-alt: #0b0e15;
+  --accent1: #00f5ff;  /* teal */
+  --accent2: #ff00ff;  /* pink */
+  --accent3: #9b5bff;  /* purple */
+  --text-main: #f5f5f5;
+  --text-muted: #a0a0b5;
+  --card-bg: #101422;
+  --border-soft: #20263b;
+  --danger: #ff5555;
+  --success: #4cd964;
+}
+
+/* Page background + base text */
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: radial-gradient(circle at top, #111528 0, #05060a 45%, #000000 100%);
+  color: var(--text-main);
+}
+
+/* App shell */
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 2rem 1rem 3rem;
+}
+
+.app-inner {
+  width: 100%;
+  max-width: 1080px;
+  border-radius: 18px;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 245, 255, 0.7),
+    rgba(255, 0, 255, 0.6),
+    rgba(155, 91, 255, 0.7)
+  );
+}
+
+.app-inner-body {
+  background: linear-gradient(145deg, #05060a 0, #050712 30%, #020308 100%);
+  border-radius: 16px;
+  padding: 1.5rem 1.25rem 2rem;
+}
+
+/* Title area */
+.app-header {
+  margin-bottom: 1.25rem;
+}
+
+.app-title {
+  font-size: clamp(1.6rem, 2.4vw, 2rem);
+  font-weight: 700;
+  margin: 0 0 0.4rem;
+}
+
+.app-title-gradient {
+  background: linear-gradient(120deg, var(--accent1), var(--accent2), var(--accent3));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.app-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  max-width: 640px;
+}
+
+/* Buttons */
+.btn {
+  border-radius: 999px;
+  padding: 0.45rem 1.1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: radial-gradient(circle at 20% 0, var(--accent1), var(--accent2));
+  color: #05060a;
+  box-shadow: 0 0 18px rgba(0, 245, 255, 0.25);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 28px rgba(0, 245, 255, 0.4);
+}
+
+.btn-secondary {
+  border-color: var(--border-soft);
+  background: rgba(8, 10, 22, 0.9);
+  color: var(--text-main);
+}
+
+.btn-secondary:hover {
+  border-color: var(--accent3);
+  background: rgba(12, 16, 30, 0.95);
+  transform: translateY(-1px);
+}
+
+/* Card grid */
+.card-grid {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .card-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Individual card frame */
+.sg-card {
+  border-radius: 14px;
+  background: radial-gradient(circle at top left, #171c30 0, #05060a 48%, #05060a 100%);
+  border: 1px solid var(--border-soft);
+  padding: 0.75rem 0.8rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+/* Card header + rarity */
+.sg-card-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.sg-card-rarity {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent1);
+}
+
+/* Rarity variations */
+.sg-rarity-common {
+  color: var(--text-muted);
+}
+
+.sg-rarity-rare {
+  color: var(--accent1);
+}
+
+.sg-rarity-epic {
+  color: var(--accent3);
+}
+
+.sg-rarity-legendary {
+  color: #ffb84d;
+}
+
+/* Card body text */
+.sg-card-body {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Small label pills */
+.sg-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.25rem;
+}
+
+.sg-pill {
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.72rem;
+  border: 1px solid var(--border-soft);
+  color: var(--text-muted);
+}
