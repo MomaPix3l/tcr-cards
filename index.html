@@ -425,13 +425,20 @@ const RNAME = r => ({legendary:'Legendary',epic:'Epic',rare:'Rare',common:'Commo
 const RCOLOR= r => ({common:'var(--c-common)',rare:'var(--c-rare)',epic:'var(--c-epic)',legendary:'var(--c-legend)'})[r] || '#ccc';
 
 /* ============== storage helpers ============== */
-const getUser = () => (localStorage.getItem('tcr_user') || '').trim().toLowerCase();
-const getPin  = () => (localStorage.getItem('tcr_pin')  || '').trim();
-const setUser = u => localStorage.setItem('tcr_user',(u||'').trim().toLowerCase());
-const setPin  = p => localStorage.setItem('tcr_pin',(p||'').trim());
+const getUser  = () => (localStorage.getItem('tcr_user')  || '').trim().toLowerCase();
+const getPin   = () => (localStorage.getItem('tcr_pin')   || '').trim(); // temporary until login succeeds
+const getToken = () => (localStorage.getItem('tcr_token') || '').trim();
+
+const setUser  = u => localStorage.setItem('tcr_user', (u||'').trim().toLowerCase());
+const setPin   = p => localStorage.setItem('tcr_pin',  (p||'').trim());
+const setToken = t => localStorage.setItem('tcr_token',(t||'').trim());
+
+const clearPin = () => localStorage.removeItem('tcr_pin');
+const clearToken = () => localStorage.removeItem('tcr_token');
+
 
 /* JSONP helper (for Apps Script GET endpoints) */
-function jsonp(url, params = {}) {
+/*function jsonp(url, params = {}) {
   return new Promise((resolve, reject) => {
     const cb = 'tcr_cb_' + Math.random().toString(36).slice(2);
     params.cb = cb;
@@ -455,7 +462,37 @@ function jsonp(url, params = {}) {
 
     document.head.appendChild(s);
   });
+}*/
+
+  async function apiPost(payload){
+  const r = await fetch(API, {
+    method: "POST",
+    headers: { "Content-Type":"application/json" },
+    body: JSON.stringify(payload)
+  });
+  return r.json();
 }
+async function ensureLogin(){
+  const u = getUser();
+  if (!u) throw new Error("missing_user");
+
+  // If we already have a token, keep using it.
+  const existing = getToken();
+  if (existing) return existing;
+
+  // No token yet -> we need a PIN once.
+  const p = getPin();
+  if (!p) throw new Error("pin_required");
+
+  const res = await apiPost({ action:"login", user:u, pin:p });
+  if (!res || !res.ok) throw new Error(res?.error || "login_failed");
+
+  setToken(res.token);
+  clearPin();              // optional but recommended: stop storing PIN
+  $("pin").value = "";     // optional: clear pin input on screen
+  return res.token;
+}
+
 
 /* ============== ui + state ============== */
 const $ = id => document.getElementById(id);
@@ -605,7 +642,6 @@ async function apiJSON(url,opts){
 
 async function load(){
   const u = getUser();
-  const p = getPin();
 
   if (!u){
     notice.textContent = 'Enter your Twitch name and press Enter.';
@@ -617,34 +653,53 @@ async function load(){
 
   notice.textContent = 'Loading…';
 
-const [inv,sum] = await Promise.all([
-  apiJSON(`${API}?action=inventory&user=${encodeURIComponent(u)}&pin=${encodeURIComponent(p)}`),
-  apiJSON(`${API}?action=summary&user=${encodeURIComponent(u)}&pin=${encodeURIComponent(p)}`)
-]);
-if(!inv.ok){
-  if (inv.error && String(inv.error).indexOf('pin_required_or_invalid') !== -1){
-    notice.textContent = 'PIN incorrect or missing. Use the !cardpin command on stream to get your PIN.';
-  } else {
-    notice.textContent = 'Error: ' + (inv.error || 'loading');
+  try{
+    const token = await ensureLogin();
+
+    const [inv, sum] = await Promise.all([
+      apiPost({ action:"inventory", token }),
+      apiPost({ action:"summary", token })
+    ]);
+
+    if(!inv.ok){
+      notice.textContent = 'Error: ' + (inv.error || 'loading');
+      return;
+    }
+
+    INVENTORY = inv.items || [];
+    SUM       = sum || null;
+
+    renderTabs();
+    renderStats();
+    renderGrid();
+    notice.textContent = '';
+
+  } catch(e){
+    const msg = String(e?.message || e);
+
+    if (msg.includes("pin_required")){
+      notice.textContent = 'Enter your Twitch name and PIN, then press Enter.';
+    } else if (msg.includes("pin_required_or_invalid")){
+      notice.textContent = 'PIN incorrect or missing. Use the !cardpin command on stream to get your PIN.';
+      clearToken();
+    } else if (msg.includes("invalid_or_expired_token")){
+      notice.textContent = 'Session expired. Enter your PIN again.';
+      clearToken();
+    } else {
+      notice.textContent = 'Error: ' + msg;
+      console.error(e);
+    }
   }
-  return;
 }
 
-
-  INVENTORY = inv.items || [];
-  SUM       = sum || null;
-
-  renderTabs();
-  renderStats();
-  renderGrid();
-  notice.textContent = '';
-}
+  
 
 async function play(cardId){
-  const u = getUser();
   toast('Playing…', 1200);
   try{
-    const res = await jsonp(API, { action:'redeem', user:u, cardId });
+    const token = await ensureLogin();
+    const res = await apiPost({ action:"redeem", token, cardId });
+
     if(res && res.ok){
       toast('Redeemed!');
       load();
@@ -653,9 +708,10 @@ async function play(cardId){
     }
   } catch(e){
     console.error(e);
-    toast('Network error', 2400);
+    toast('Network/auth error', 2400);
   }
 }
+
 
 async function openPack(){
   const u = getUser();
@@ -684,7 +740,9 @@ async function openPack(){
   toast('Opening pack…', 1200);
 
   try{
-   const res = await jsonp(API, { action:'openpack', user:u, pin:getPin() });
+   const token = await ensureLogin();
+  const res = await apiPost({ action:"openpack", token });
+
 
 
     // wait a bit so the animation plays nicely
@@ -738,20 +796,27 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnOpen = $('openPackBtn');
   if (btnOpen) btnOpen.addEventListener('click', openPack);
 
-  $('save').onclick = () => {
-    const u = $('uname').value.trim();
-    const p = $('pin').value.trim();
+$('save').onclick = async () => {
+  const u = $('uname').value.trim();
+  const p = $('pin').value.trim();
 
-    if (!u || !p){
-      toast('Enter your Twitch name AND PIN', 2200);
-      return;
-    }
+  if (!u){
+    toast('Enter your Twitch name', 2200);
+    return;
+  }
 
-    setUser(u);
+  setUser(u);
+
+  // If they entered a PIN, store it temporarily and force a new login session.
+  if (p){
     setPin(p);
-    toast('Loading…');
-    load();
-  };
+    clearToken(); // ensures we re-login with the new pin
+  }
+
+  toast('Loading…');
+  await load();
+};
+
 
   $('refresh').onclick = () => load();
   $('search').addEventListener('input', () => renderGrid());
