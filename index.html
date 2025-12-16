@@ -472,7 +472,8 @@ const clearToken = () => localStorage.removeItem('tcr_token');
   });
   return r.json();
 }
-async function ensureLogin(){
+  
+/*async function ensureLogin(){
   const u = getUser();
   if (!u) throw new Error("missing_user");
 
@@ -491,7 +492,28 @@ async function ensureLogin(){
   clearPin();              // optional but recommended: stop storing PIN
   $("pin").value = "";     // optional: clear pin input on screen
   return res.token;
+}*/
+
+  async function ensureLoginJSONP(){
+  const u = getUser();
+  if (!u) throw new Error('missing_user');
+
+  const existing = getToken();
+  if (existing) return existing;
+
+  const p = getPin();
+  if (!p) throw new Error('pin_required_or_invalid');
+
+  const res = await jsonp(API, { action:'login', user:u, pin:p });
+  if (!res || !res.ok) throw new Error(res?.error || 'login_failed');
+
+  setToken(res.token);
+  // optional: clear stored pin after successful login
+  localStorage.removeItem('tcr_pin');
+  $('pin').value = '';
+  return res.token;
 }
+
 
 
 /* ============== ui + state ============== */
@@ -654,12 +676,12 @@ async function load(){
   notice.textContent = 'Loading…';
 
   try{
-    const token = await ensureLogin();
+  const token = await ensureLoginJSONP();
+  const [inv,sum] = await Promise.all([
+  jsonp(API, { action:'inventory', token }),
+  jsonp(API, { action:'summary', token })
+]);
 
-    const [inv, sum] = await Promise.all([
-      apiPost({ action:"inventory", token }),
-      apiPost({ action:"summary", token })
-    ]);
 
     if(!inv.ok){
       notice.textContent = 'Error: ' + (inv.error || 'loading');
@@ -697,8 +719,9 @@ async function load(){
 async function play(cardId){
   toast('Playing…', 1200);
   try{
-    const token = await ensureLogin();
-    const res = await apiPost({ action:"redeem", token, cardId });
+const token = await ensureLoginJSONP();
+const res = await jsonp(API, { action:'redeem', token, cardId });
+
 
     if(res && res.ok){
       toast('Redeemed!');
@@ -740,11 +763,9 @@ async function openPack(){
   toast('Opening pack…', 1200);
 
   try{
-   const token = await ensureLogin();
-  const res = await apiPost({ action:"openpack", token });
-
-
-
+   const token = await ensureLoginJSONP();
+   const res = await jsonp(API, { action:'openpack', token });
+    
     // wait a bit so the animation plays nicely
     await new Promise(r => setTimeout(r, 900));
 
