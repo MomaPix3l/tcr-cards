@@ -471,6 +471,10 @@ body{
   filter: blur(10px);
 }
 
+.card.zero { opacity: .6; }
+.card.zero .play { opacity: .5; }
+
+
 /* Rarity glow variants */
 .reveal-card.r-special::after   { box-shadow: 0 0 26px rgba(255,0,255,.25); }
 .reveal-card.r-legendary::after { box-shadow: 0 0 26px rgba(255,184,77,.22); }
@@ -803,10 +807,10 @@ function renderGrid(){
   for(const it of filtered){
     const isHolo = String(it.cardId).endsWith(':holo');
     const card = document.createElement('div');
-    card.className = `card ${it.rarity} ${isHolo ? 'holo' : ''}`;
+    card.className = `card ${it.rarity} ${isHolo ? 'holo' : ''} ${it.qty<=0 ? 'zero' : ''}`;
     card.innerHTML = `
           <div class="titleRow">
-              ${it.name}${isHolo ? ' ✨' : ''}
+              ${isHolo ? ' ✨' : ''}
               <span class="rar" style="color:${RCOLOR(it.rarity)}">(${RNAME(it.rarity)})</span>
             </div>          
             ${it.rarity === 'special' ? `
@@ -816,7 +820,7 @@ function renderGrid(){
       ${it.imageUrl ? `<img class="img" src="${it.imageUrl}" alt="${it.name}"/>` : `<div class="img"></div>`}
       <div class="desc">${it.desc || ''}</div>
       <div class="meta">
-        <div>Owned: <b>${it.qty}</b></div>
+        <div>Charges: <b>${it.qty}</b></div>
         <div class="cool" id="cool-${safeId(it.cardId)}">
           ${it.remain > 0 ? ('Cooldown: ' + fmt(it.remain)) : 'Ready'}
         </div>
