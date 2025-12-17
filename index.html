@@ -259,6 +259,43 @@ body{
     margin-top:12px;
   }
 
+  /* Special tag */
+.tag{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:3px 10px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  border:1px solid var(--ring);
+  background:rgba(0,0,0,.28);
+  color:var(--text);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.05);
+}
+
+.tag.special{
+  border-color: rgba(255,0,255,.45);
+  box-shadow:
+    0 0 18px rgba(255,0,255,.18),
+    inset 0 0 0 1px rgba(255,255,255,.05);
+}
+
+.tag-dot{
+  width:8px;
+  height:8px;
+  border-radius:99px;
+  background: var(--accent2); /* magenta */
+  box-shadow: 0 0 10px rgba(255,0,255,.55);
+}
+
+.card.special{
+  border-color: rgba(255,0,255,.20);
+  box-shadow: 0 16px 50px rgba(0,0,0,.35), 0 0 22px rgba(255,0,255,.10);
+}
+
   .card{
   position:relative;
   overflow:hidden;
@@ -391,6 +428,11 @@ body{
     You have <span id="packCount">0</span> unopened pack(s).
     <button id="openPackBtn" class="btn secondary" disabled>Open Pack</button>
   </div>
+      
+  <div id="giftArea" class="packsArea" style="display:none;">
+      You received <span id="giftCount">0</span> new card(s).
+      <button id="showNewBtn" class="btn secondary">Show</button>
+   </div>
 
  <div id="lastPack" class="lastPack" style="display:none;"></div>
 
@@ -420,9 +462,21 @@ body{
 <script>
 /* ============== CONFIG ============== */
 const API = 'https://script.google.com/macros/s/AKfycbyvVrFPuiT2fvXne7E0Q9RuWowiWdlmtkTLfrQM1M7mWq5PR9zeXLA-d3NwqSoyrkpd/exec'; // your /exec URL
-const RARITIES = ['legendary','epic','rare','common'];
-const RNAME = r => ({legendary:'Legendary',epic:'Epic',rare:'Rare',common:'Common'})[r] || r;
-const RCOLOR= r => ({common:'var(--c-common)',rare:'var(--c-rare)',epic:'var(--c-epic)',legendary:'var(--c-legend)'})[r] || '#ccc';
+const RARITIES = ['common','rare','epic','legendary','special'];
+  
+const RNAME = r => ({
+  special:'Special',
+  legendary:'Legendary', epic:'Epic', rare:'Rare', common:'Common'
+})[r] || r;
+
+const RCOLOR = r => ({
+  special:'var(--accent2)',
+  common:'var(--c-common)',
+  rare:'var(--c-rare)',
+  epic:'var(--c-epic)',
+  legendary:'var(--c-legend)'
+})[r] || '#ccc';
+
 
 /* ============== storage helpers ============== */
 const getUser  = () => (localStorage.getItem('tcr_user')  || '').trim().toLowerCase();
@@ -531,6 +585,33 @@ let timers    = [];
 let SUM       = null;
 let lastPackTimer = null;  // ⬅ for auto-hiding the last pack box
 
+const INV_SNAP_KEY = 'tcr_inv_snapshot';
+
+function snapshotMap(items){
+  const m = {};
+  (items || []).forEach(it => { m[String(it.cardId)] = Number(it.qty || 0); });
+  return m;
+}
+
+function diffNew(prevMap, items){
+  const added = [];
+  (items || []).forEach(it => {
+    const id = String(it.cardId);
+    const prev = Number(prevMap[id] || 0);
+    const cur  = Number(it.qty || 0);
+    if (cur > prev) added.push({ cardId:id, name:it.name, rarity:it.rarity, delta:cur-prev });
+  });
+  return added;
+}
+
+function saveSnapshot(items){
+  localStorage.setItem(INV_SNAP_KEY, JSON.stringify(snapshotMap(items)));
+}
+
+function loadSnapshot(){
+  try { return JSON.parse(localStorage.getItem(INV_SNAP_KEY) || '{}') || {}; }
+  catch(_) { return {}; }
+}
 
 /* toast */
 function toast(msg,ms=1800){
@@ -614,12 +695,14 @@ function renderGrid(){
     const card = document.createElement('div');
     card.className = `card ${it.rarity} ${isHolo ? 'holo' : ''}`;
     card.innerHTML = `
-      <div class="titleRow">
-        <div class="name">
-          ${it.name}${isHolo ? ' ✨' : ''}
-          <span class="rar" style="color:${RCOLOR(it.rarity)}">(${RNAME(it.rarity)})</span>
-        </div>
-      </div>
+          <div class="titleRow">
+              ${it.name}${isHolo ? ' ✨' : ''}
+              <span class="rar" style="color:${RCOLOR(it.rarity)}">(${RNAME(it.rarity)})</span>
+            </div>          
+            ${it.rarity === 'special' ? `
+              <div class="tag special"><span class="tag-dot"></span>Limited</div>
+            ` : ''}
+          </div>
       ${it.imageUrl ? `<img class="img" src="${it.imageUrl}" alt="${it.name}"/>` : `<div class="img"></div>`}
       <div class="desc">${it.desc || ''}</div>
       <div class="meta">
@@ -689,6 +772,40 @@ async function load(){
     }
 
     INVENTORY = inv.items || [];
+    // Detect newly granted cards since last load
+const prev = loadSnapshot();
+const firstTime = !Object.keys(prev).length;
+const added = firstTime ? [] : diffNew(prev, INVENTORY);
+saveSnapshot(INVENTORY);
+
+/*const added = diffNew(prev, INVENTORY);
+saveSnapshot(INVENTORY);*/
+
+const giftArea  = $('giftArea');
+const giftCount = $('giftCount');
+const showBtn   = $('showNewBtn');
+
+if (added.length){
+  giftArea.style.display = 'flex';
+  giftCount.textContent = added.reduce((a,x)=>a + (x.delta||0), 0);
+
+  showBtn.onclick = () => {
+    // Switch tab to Special if any new specials, else All
+    const hasSpecial = added.some(x => String(x.rarity) === 'special');
+    setActive(hasSpecial ? 'special' : 'all');
+    renderGrid();
+
+    // Optional: toast details
+    const top = added[0];
+    toast(`New: ${top.name} (+${top.delta})`, 2200);
+
+    // Hide the banner after viewing
+    giftArea.style.display = 'none';
+  };
+} else {
+  giftArea.style.display = 'none';
+}
+
     SUM       = sum || null;
 
     renderTabs();
