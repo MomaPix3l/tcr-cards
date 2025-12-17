@@ -764,10 +764,11 @@ function renderStats(){
     `<div class="stat"><span style="color:${color}">${label}:</span> <b>${val}</b></div>`;
 
   stats.innerHTML =
-    box('Legendary', SUM.userCounts?.legendary || 0, RCOLOR('legendary')) +
-    box('Epic',      SUM.userCounts?.epic      || 0, RCOLOR('epic'))      +
-    box('Rare',      SUM.userCounts?.rare      || 0, RCOLOR('rare'))      +
     box('Common',    SUM.userCounts?.common    || 0, RCOLOR('common'))    +
+    box('Rare',      SUM.userCounts?.rare      || 0, RCOLOR('rare'))      +
+    box('Epic',      SUM.userCounts?.epic      || 0, RCOLOR('epic'))      +
+    box('Legendary', SUM.userCounts?.legendary || 0, RCOLOR('legendary')) + 
+   
     `<div class="stat">Catalog: <b>${SUM.totalCatalog || 0}</b></div>`;
 
   // Packs UI
