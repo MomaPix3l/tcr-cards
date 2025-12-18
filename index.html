@@ -321,6 +321,75 @@ body{
     background:#070b11; margin:12px 0;
     box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);
   }
+/* ===== HOLOGRAPHIC FOIL EFFECT (CSS only) ===== */
+.card.holo{
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+}
+
+.card.holo::before{
+  content:"";
+  position:absolute;
+  inset:-2px;
+  border-radius:inherit;
+  pointer-events:none;
+  z-index:1;
+
+  /* iridescent foil gradient */
+  background:
+    linear-gradient(120deg,
+      rgba(0,245,255,.0) 0%,
+      rgba(255,0,255,.22) 18%,
+      rgba(155,91,255,.18) 35%,
+      rgba(255,184,77,.18) 52%,
+      rgba(0,245,255,.22) 70%,
+      rgba(255,0,255,.0) 100%);
+
+  mix-blend-mode:screen;
+  opacity:.85;
+  filter:saturate(1.2) contrast(1.05);
+}
+
+/* moving shine sweep */
+.card.holo::after{
+  content:"";
+  position:absolute;
+  inset:-40%;
+  border-radius:inherit;
+  pointer-events:none;
+  z-index:2;
+
+  background:linear-gradient(115deg,
+    transparent 0%,
+    rgba(255,255,255,.0) 38%,
+    rgba(255,255,255,.55) 50%,
+    rgba(255,255,255,.0) 62%,
+    transparent 100%);
+  transform:translateX(-40%) rotate(8deg);
+  animation:holo-sweep 2.6s ease-in-out infinite;
+  mix-blend-mode:overlay;
+  opacity:.55;
+}
+
+@keyframes holo-sweep{
+  0%   { transform:translateX(-55%) rotate(8deg); opacity:.10; }
+  45%  { opacity:.65; }
+  100% { transform:translateX(55%) rotate(8deg); opacity:.10; }
+}
+
+/* make content render above foil layers */
+.card.holo > *{ position:relative; z-index:3; }
+
+/* optional: give holo cards a “foil rim” */
+.card.holo{
+  box-shadow:
+    0 18px 55px rgba(0,0,0,.35),
+    0 0 0 1px rgba(255,255,255,.18) inset,
+    0 0 24px rgba(0,245,255,.18);
+}
+
+  
   .holo .img{ outline:2px dashed var(--c-legend); outline-offset:4px; }
 
   .desc{
