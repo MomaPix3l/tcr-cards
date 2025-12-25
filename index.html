@@ -591,6 +591,10 @@ body{
       <input id="onlyHolo" type="checkbox" class="chk"/>
       <label for="onlyHolo">Show holographics only ✨</label>
     </div>
+    <div> 
+        <label class="toggle">
+            <input type="checkbox" id="showZeroToggle">Show cards with 0 charges</label>
+    </div>
   </div>
 
   <div id="notice" class="notice">Enter your Twitch name and press Enter.</div>
@@ -646,6 +650,9 @@ body{
 /* ============== CONFIG ============== */
 const API = 'https://script.google.com/macros/s/AKfycbyyyW55Y_FEYSWtZlBflf0UVcTowONpHzmheRtPd7E0zqVxnfiHUzjbw-AoTwVecXA/exec'; // your /exec URL
 const RARITIES = ['common','rare','epic','legendary','special'];
+let SHOW_ZERO = false;     // show cards with 0 charges
+
+
   
 const RNAME = r => ({
 common:'Common', rare:'Rare', epic:'Epic', legendary:'Legendary', special:'Special'
@@ -671,6 +678,7 @@ const setToken = t => localStorage.setItem('tcr_token',(t||'').trim());
 
 const clearPin = () => localStorage.removeItem('tcr_pin');
 const clearToken = () => localStorage.removeItem('tcr_token');
+
 
 
 /* JSONP helper (for Apps Script GET endpoints) */
@@ -700,6 +708,13 @@ function jsonp(url, params = {}) {
   });
 }
 
+async function apiGet(action, params = {}){
+  const qs = new URLSearchParams({ action, ...params }).toString();
+  const r = await fetch(`${API}?${qs}`);
+  return r.json();
+}
+
+
   async function apiPost(payload){
   const r = await fetch(API, {
     method: "POST",
@@ -709,46 +724,31 @@ function jsonp(url, params = {}) {
   return r.json();
 }
   
-/*async function ensureLogin(){
-  const u = getUser();
-  if (!u) throw new Error("missing_user");
-
-  // If we already have a token, keep using it.
-  const existing = getToken();
-  if (existing) return existing;
-
-  // No token yet -> we need a PIN once.
-  const p = getPin();
-  if (!p) throw new Error("pin_required");
-
-  const res = await apiPost({ action:"login", user:u, pin:p });
-  if (!res || !res.ok) throw new Error(res?.error || "login_failed");
-
-  setToken(res.token);
-  clearPin();              // optional but recommended: stop storing PIN
-  $("pin").value = "";     // optional: clear pin input on screen
-  return res.token;
-}*/
-
-  async function ensureLoginJSONP(){
+async function ensureLoginJSONP(){
   const u = getUser();
   if (!u) throw new Error('missing_user');
 
+  // If we already have a token, try using it.
   const existing = getToken();
   if (existing) return existing;
 
+  // No token => must login with PIN
   const p = getPin();
   if (!p) throw new Error('pin_required_or_invalid');
 
-  const res = await jsonp(API, { action:'login', user:u, pin:p });
-  if (!res || !res.ok) throw new Error(res?.error || 'login_failed');
+  const res = await jsonp(API, { action:'login', user: u, pin: p });
+  if (!res || !res.ok) throw new Error((res && res.error) || 'login_failed');
 
   setToken(res.token);
-  // optional: clear stored pin after successful login
+
+  // Optional: clear PIN after successful login
   localStorage.removeItem('tcr_pin');
-  $('pin').value = '';
+  const pinEl = $('pin');
+  if (pinEl) pinEl.value = '';
+
   return res.token;
 }
+
 
 
 
@@ -836,11 +836,12 @@ function renderStats(){
   const box = (label,val,color) =>
     `<div class="stat"><span style="color:${color}">${label}:</span> <b>${val}</b></div>`;
 
-  stats.innerHTML =
+  /*stats.innerHTML =
     box('Common',    SUM.userCounts?.common    || 0, RCOLOR('common'))    +
     box('Rare',      SUM.userCounts?.rare      || 0, RCOLOR('rare'))      +
     box('Epic',      SUM.userCounts?.epic      || 0, RCOLOR('epic'))      +
     box('Legendary', SUM.userCounts?.legendary || 0, RCOLOR('legendary')) + 
+    box('Special  ', SUM.userCounts?.special   || 0, RCOLOR('special')) + */
    
     `<div class="stat">Catalog: <b>${SUM.totalCatalog || 0}</b></div>`;
 
@@ -1132,6 +1133,17 @@ function showPackReveal(cards){
   };
 }
 
+function renderInventory(inv){
+  if(!inv || !inv.items) return;
+
+  const showZero = document.getElementById('showZero').checked;
+
+  const items = showZero
+    ? inv.items
+    : inv.items.filter(it => Number(it.qty || 0) > 0);
+
+  // then your existing rendering loop uses `items` instead of `inv.items`
+}
 
 
 
@@ -1165,6 +1177,14 @@ $('save').onclick = async () => {
   await load();
 };
 
+  const t = $('showZeroToggle');
+  if (t){
+    t.checked = SHOW_ZERO;
+    t.addEventListener('change', () => {
+      SHOW_ZERO = t.checked;
+      renderGrid(); // re-render without refetch
+    });
+  }
 
   $('refresh').onclick = () => load();
   $('search').addEventListener('input', () => renderGrid());
