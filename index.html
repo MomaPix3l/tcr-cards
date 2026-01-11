@@ -1,688 +1,511 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Your Wonderland Cards</title>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Your Wonderland Cards</title>
 
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/stream-games-theme.css">
 
+  <style>
+    :root{
+      --bg:#05060a;
+      --bg2:#050712;
+      --panel:#101422;
+      --ink:#05060a;
 
-<style>
-:root{
-  /* Background + panels (aligned with landing page) */
-  --bg:#05060a;
-  --bg2:#050712;
-  --panel:#101422;
-  --ink:#05060a;
+      --ring: rgba(255,255,255,.12);
+      --ring2: rgba(255,255,255,.06);
 
-  /* Borders / subtle outlines */
-  --ring: rgba(255,255,255,.12);
-  --ring2: rgba(255,255,255,.06);
+      --text:#f5f5f5;
+      --muted:#a0a0b5;
 
-  /* Text */
-  --text:#f5f5f5;
-  --muted:#a0a0b5;
+      --accent:#00f5ff;
+      --accent2:#ff00ff;
 
-  /* Neon accents (same family as landing page) */
-  --accent:#00f5ff;   /* teal */
-  --accent2:#ff00ff;  /* magenta */
+      --c-common:#a0a0b5;
+      --c-rare:#00f5ff;
+      --c-epic:#9b5bff;
+      --c-legend:#ffb84d;
+    }
 
-  /* Rarity colors tuned to neon palette */
-  --c-common:#a0a0b5;
-  --c-rare:#00f5ff;
-  --c-epic:#9b5bff;
-  --c-legend:#ffb84d;
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      color:var(--text);
+      font-family:Outfit, ui-sans-serif, system-ui, Segoe UI, Roboto, Arial;
+      background: radial-gradient(circle at top, #111528 0%, #05060a 45%, #000000 100%);
+      min-height:100dvh;
+    }
+
+    .app-shell{ min-height:100vh; display:flex; justify-content:center; padding:2rem 1rem 4rem; }
+    .app-inner{
+      width:100%; max-width:1100px; border-radius:18px; padding:1px;
+      background:linear-gradient(135deg, rgba(0,245,255,0.7), rgba(255,0,255,0.5), rgba(155,91,255,0.7));
+    }
+    .app-inner-body{
+      background:linear-gradient(145deg,#05060a 0,#050712 30%,#020308 100%);
+      border-radius:16px; padding:2rem 1.25rem 2.5rem;
+    }
+
+    /* HERO */
+    .hero{
+      display:flex; gap:16px; align-items:center; justify-content:space-between; flex-wrap:wrap;
+      background:linear-gradient(180deg, rgba(0,0,0,.25), rgba(0,0,0,.12));
+      border:1px solid var(--ring);
+      border-radius:18px;
+      padding:16px 18px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.04), 0 18px 60px rgba(0,0,0,.35);
+    }
+    .brand{ display:flex; gap:12px; align-items:center; }
+    .logo{
+      width:42px; height:42px; border-radius:12px; display:grid; place-items:center;
+      background:conic-gradient(from 210deg, #00f5ff, #ff00ff, #9b5bff, #00f5ff);
+      box-shadow:0 0 36px rgba(0,245,255,.35);
+    }
+    .logo svg{ width:26px; height:26px; fill:#041418; }
+    .title{ font-size:22px; font-weight:800; letter-spacing:.3px; }
+    .subtitle{ font-size:13px; color:var(--muted); }
+
+    .controls{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .in{
+      background:var(--panel);
+      border:1px solid var(--ring);
+      color:var(--text);
+      border-radius:12px;
+      padding:10px 12px;
+      min-width:220px;
+    }
+    .btn{
+      background:var(--accent);
+      color:#042022;
+      border:none;
+      border-radius:12px;
+      padding:10px 14px;
+      font-weight:800;
+      cursor:pointer;
+      box-shadow:0 6px 20px rgba(0,194,199,.22);
+    }
+    .btn.secondary{
+      background:transparent;
+      color:var(--text);
+      border:1px solid var(--ring);
+      box-shadow:none;
+    }
+
+    /* FILTER BAR */
+    .filters{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      margin:14px 2px;
+    }
+    .search{ flex:1; min-width:240px; }
+    .toggle{ display:flex; gap:8px; align-items:center; color:var(--muted); font-size:14px; }
+    .chk{ width:18px; height:18px; accent-color:var(--accent); }
+
+    /* Game filter buttons (injected by JS) */
+    .gameFilter{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .gbtn{
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid var(--ring);
+      background:rgba(255,255,255,.02);
+      color:var(--muted);
+      font-weight:800;
+      cursor:pointer;
+    }
+    .gbtn.active{
+      background:var(--accent);
+      color:#031b1c;
+      border-color:transparent;
+    }
+
+    /* TABS + STATS */
+    .tabs{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:10px 2px 0 2px; }
+    .tab{
+      padding:8px 12px; border-radius:999px;
+      border:1px solid var(--ring);
+      cursor:pointer;
+      color:var(--muted);
+      font-weight:700;
+      background:rgba(255,255,255,.02);
+   }
+    .tab.active{ color:#031b1c; background:var(--accent); border-color:transparent; }
+    .pill{
+      font-size:12px;
+      opacity:.95;
+      margin-left:6px;
+      padding:2px 8px;
+      border-radius:999px;
+      background:rgba(0,0,0,.25);
+      color:#031b1c;
+    }
+    .stats{ display:flex; gap:12px; flex-wrap:wrap; margin:10px 2px; color:var(--muted); }
+    .stat{ background:rgba(255,255,255,.04); border:1px solid var(--ring); border-radius:12px; padding:8px 10px; }
+    .stat b{ color:var(--text); }
+
+    /* PACKS AREA */
+    .packsArea{
+      margin:10px 2px;
+      font-size:14px;
+      color:var(--muted);
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    #openPackBtn[disabled]{ opacity:.4; cursor:not-allowed; box-shadow:none; }
+
+    #lastPack{
+      margin:10px 2px 0 2px;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--ring);
+      background:rgba(0,0,0,.35);
+      font-size:13px;
+      display:none;
+    }
+    #lastPack b{ color:var(--text); }
+    #lastPack .cardLine{ margin-top:4px; }
+
+    /* GRID + CARD */
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+      gap:16px;
+      margin-top:12px;
+    }
+
+    .notice{ color:var(--muted); margin:10px 2px; }
+
+    .card{
+      position:relative;
+      overflow:hidden;
+      background:radial-gradient(circle at top left, #171c30 0%, #05060a 48%, #05060a 100%);
+      border:1px solid var(--ring2);
+      border-radius:16px;
+      padding:14px;
+      transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+      backdrop-filter: blur(3px);
+    }
+    .card:hover{ transform:translateY(-2px); box-shadow:0 16px 50px rgba(0,0,0,.35); border-color:var(--ring); }
+
+    .titleRow{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
+    .name{ font-weight:900; letter-spacing:.3px; }
+    .rar{ font-size:12px; opacity:.9; }
+
+    .img{
+      width:100%;
+      height:160px;
+      object-fit:contain;
+      border-radius:12px;
+      background:#070b11;
+      margin:12px 0;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);
+    }
+
+.desc{
+  color: var(--muted);
+  font-size: 14px;
+  min-height: 22px;
+  text-align: center;
+  margin-top: 6px;
+  line-height: 1.3;
+
+  /* gradient text */
+  background: linear-gradient(90deg, #7dd3fc, #c084fc, #00C2C7);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  font-weight: 600;
+  filter: drop-shadow(0 0 6px rgba(0, 194, 199, 0.25));
 }
 
 
-  
-  *{ box-sizing:border-box; }
-
-body{
-  margin:0;
-  color:var(--text);
-  font-family:Outfit, ui-sans-serif, system-ui, Segoe UI, Roboto, Arial;
-  background:
-    radial-gradient(circle at top, #111528 0%, #05060a 45%, #000000 100%);
-  min-height:100dvh;
-}
-
-/* ===== Compact single-card reveal mode ===== */
-#packReveal.solo .reveal-stage{
-  width: min(420px, calc(100vw - 28px));  /* smaller modal */
-}
-
-#packReveal.solo .reveal-cards{
-  display: grid;
-  grid-template-columns: 1fr;            /* exactly one column */
-  justify-items: center;
-}
-
-#packReveal.solo .reveal-card{
-  width: 100%;
-  max-width: 360px;                       /* card box size */
-}
-
-#packReveal.solo .reveal-img{
-  height: 180px;                          /* give the art more room */
-}
-
-
-
-  /* Floating sparkles backdrop */
-  .stars{ position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.25; }
-  .stars:before, .stars:after{
-    content:""; position:absolute; inset:-20%;
-    background:
-      radial-gradient(2px 2px at 10% 20%, #fff 0 30%, transparent 60%),
-      radial-gradient(2px 2px at 80% 15%, #fff 0 30%, transparent 60%),
-      radial-gradient(2px 2px at 40% 70%, #fff 0 30%, transparent 60%),
-      radial-gradient(2px 2px at 65% 50%, #fff 0 30%, transparent 60%),
-      radial-gradient(2px 2px at 20% 90%, #fff 0 30%, transparent 60%);
-    animation: drift 40s linear infinite;
-    filter: blur(.4px);
-  }
-  .stars:after{ animation-duration:64s; opacity:.7 }
-  @keyframes drift{ from{ transform:translateY(0) } to{ transform:translateY(-10%) } }
-
-  .wrap{ position:relative; z-index:1; max-width:1200px; margin:0 auto; padding:20px; }
-
-  .app-shell{
-  min-height:100vh;
-  display:flex;
-  justify-content:center;
-  padding:2rem 1rem 4rem;
-}
-
-.app-inner{
-  width:100%;
-  max-width:1100px;
-  border-radius:18px;
-  padding:1px;
-  background:linear-gradient(
-    135deg,
-    rgba(0,245,255,0.7),
-    rgba(255,0,255,0.5),
-    rgba(155,91,255,0.7)
-  );
-}
-
-.app-inner-body{
-  background:linear-gradient(145deg,#05060a 0,#050712 30%,#020308 100%);
-  border-radius:16px;
-  padding:2rem 1.25rem 2.5rem;
-}
-
-
-  /* HERO */
-  .hero{
-    display:flex; gap:16px; align-items:center; justify-content:space-between; flex-wrap:wrap;
-    background:linear-gradient(180deg, rgba(0,0,0,.25), rgba(0,0,0,.12));
-    border:1px solid var(--ring); border-radius:18px; padding:16px 18px;
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,.04), 0 18px 60px rgba(0,0,0,.35);
-  }
-  .brand{ display:flex; gap:12px; align-items:center; }
-
-  
-.logo{
-  width:42px; height:42px; border-radius:12px; display:grid; place-items:center;
-  background:conic-gradient(from 210deg, #00f5ff, #ff00ff, #9b5bff, #00f5ff);
-  box-shadow:0 0 36px rgba(0,245,255,.35);
-}
-
-
-  
-  .logo svg{ width:26px; height:26px; fill:#041418; }
-  .title{ font-size:22px; font-weight:800; letter-spacing:.3px; }
-  .subtitle{ font-size:13px; color:var(--muted); }
-
-  .controls{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-  .in{
-    background:var(--panel); border:1px solid var(--ring); color:var(--text);
-    border-radius:12px; padding:10px 12px; min-width:220px;
-  }
-  .btn{
-    background:var(--accent); color:#042022; border:none; border-radius:12px; padding:10px 14px;
-    font-weight:800; cursor:pointer; box-shadow:0 6px 20px rgba(0,194,199,.22);
-  }
-  .btn.secondary{ background:transparent; color:var(--text); border:1px solid var(--ring); }
-
-  /* FILTER BAR */
-  .filters{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:14px 2px; }
-  .search{ flex:1; min-width:240px; }
-  .toggle{ display:flex; gap:8px; align-items:center; color:var(--muted); font-size:14px; }
-  .chk{ width:18px; height:18px; accent-color:var(--accent); }
-
-  /* TABS + STATS */
-  .tabs{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:10px 2px 0 2px; }
-  .tab{
-    padding:8px 12px; border-radius:999px; border:1px solid var(--ring); cursor:pointer;
-    color:var(--muted); font-weight:700; background:rgba(255,255,255,.02);
-  }
-  .tab.active{ color:#031b1c; background:var(--accent); border-color:transparent; }
-  .pill{
-    font-size:12px; opacity:.95; margin-left:6px; padding:2px 8px; border-radius:999px;
-    background:rgba(0,0,0,.25); color:#031b1c;
-  }
-
-  .stats{ display:flex; gap:12px; flex-wrap:wrap; margin:10px 2px; color:var(--muted); }
-  .stat{
-    background:rgba(255,255,255,.04); border:1px solid var(--ring); border-radius:12px;
-    padding:8px 10px;
-  }
-  .stat b{ color:var(--text); }
-
-  /* PACKS AREA */
-  .packsArea{
-    margin:10px 2px;
-    font-size:14px;
-    color:var(--muted);
-    display:flex;
-    align-items:center;
-    gap:10px;
-  }
-  #openPackBtn[disabled]{
-    opacity:.4;
-    cursor:not-allowed;
-    box-shadow:none;
-  }
-
-  #lastPack{
-    margin:10px 2px 0 2px;
-    padding:10px 12px;
-    border-radius:12px;
-    border:1px solid var(--ring);
-    background:rgba(0,0,0,.35);
-    font-size:13px;
-  }
-  #lastPack b{ color:var(--text); }
-  #lastPack .cardLine{ margin-top:4px; }
-
-  #packAnim{
-  position:fixed;
-  inset:0;
-  display:none;
-  align-items:center;
-  justify-content:center;
-  z-index:40;
-  pointer-events:none;
-}
-
-.pack-anim-box{
-  width:260px;
-  height:360px;
-  border-radius:18px;
-  background:linear-gradient(135deg,#111827 0%,#312e81 40%,#7c3aed 70%,#fbbf24 100%);
-  box-shadow:0 0 60px rgba(0,0,0,.8), 0 0 30px rgba(124,58,237,.8);
-  position:relative;
-  overflow:hidden;
-  animation:pack-pop 600ms ease-out forwards;
-}
-
-.pack-anim-inner{
-  position:absolute;
-  inset:12px;
-  border-radius:14px;
-  border:1px solid rgba(255,255,255,.3);
-  background:radial-gradient(circle at 20% 0%,rgba(255,255,255,.15),transparent 55%),
-             radial-gradient(circle at 80% 100%,rgba(0,0,0,.4),rgba(0,0,0,.9));
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  text-align:center;
-  color:#e5e7eb;
-  font-family:Outfit,system-ui,sans-serif;
-}
-
-.pack-anim-title{
-  font-size:20px;
-  font-weight:800;
-  letter-spacing:.08em;
-  text-transform:uppercase;
-  margin-bottom:6px;
-}
-.pack-anim-sub{
-  font-size:13px;
-  opacity:.85;
-}
-
-.pack-anim-shine{
-  position:absolute;
-  inset:-40%;
-  background:linear-gradient(120deg,transparent 0%,rgba(255,255,255,.9) 40%,transparent 70%);
-  transform:translateX(-100%);
-  animation:pack-shine 900ms ease-out forwards 280ms;
-  mix-blend-mode:screen;
-}
-
-@keyframes pack-pop{
-  0%{ transform:scale(.3) rotate(-8deg); opacity:0; }
-  60%{ transform:scale(1.05) rotate(2deg); opacity:1; }
-  100%{ transform:scale(1) rotate(0deg); opacity:1; }
-}
-
-@keyframes pack-shine{
-  0%{ transform:translateX(-100%); opacity:0; }
-  30%{ opacity:1; }
-  100%{ transform:translateX(100%); opacity:0; }
-}
-
-
-  /* GRID + CARD */
-  .grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
-    gap:16px;
-    margin-top:12px;
-  }
-
-  /* Special tag */
-.tag{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  padding:3px 10px;
-  border-radius:999px;
-  font-size:11px;
-  font-weight:900;
-  letter-spacing:.12em;
-  text-transform:uppercase;
-  border:1px solid var(--ring);
-  background:rgba(0,0,0,.28);
-  color:var(--text);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.05);
-}
-
-.tag.special{
-  border-color: rgba(255,0,255,.45);
-  box-shadow:
-    0 0 18px rgba(255,0,255,.18),
-    inset 0 0 0 1px rgba(255,255,255,.05);
-}
-
-.tag-dot{
-  width:8px;
-  height:8px;
-  border-radius:99px;
-  background: var(--accent2); /* magenta */
-  box-shadow: 0 0 10px rgba(255,0,255,.55);
-}
-
-.card.special{
-  border-color: rgba(255,0,255,.20);
-  box-shadow: 0 16px 50px rgba(0,0,0,.35), 0 0 22px rgba(255,0,255,.10);
-}
-
-  .card{
-  position:relative;
-  overflow:hidden;
-  background:radial-gradient(circle at top left, #171c30 0%, #05060a 48%, #05060a 100%);
-  border:1px solid var(--ring2);
-  border-radius:16px;
-  padding:14px;
-  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
-  backdrop-filter: blur(3px);
-}
-
-  
-  .card:hover{
-    transform:translateY(-2px);
-    box-shadow:0 16px 50px rgba(0,0,0,.35);
-    border-color:var(--ring);
-  }
-  .titleRow{ display:flex; justify-content:space-between; align-items:center; }
-  .name{ font-weight:900; letter-spacing:.3px; }
-  .rar{ font-size:12px; margin-left:6px; opacity:.9; }
-  .img{
-    width:100%; height:160px; object-fit:contain; border-radius:12px;
-    background:#070b11; margin:12px 0;
-    box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);
-  }
-/* ===== HOLOGRAPHIC FOIL EFFECT (CSS only) ===== */
-.card.holo{
-  position:relative;
-  isolation:isolate;
-  overflow:hidden;
-}
-
-.card.holo::before{
-  content:"";
-  position:absolute;
-  inset:-2px;
-  border-radius:inherit;
-  pointer-events:none;
-  z-index:1;
-
-  /* iridescent foil gradient */
-  background:
-    linear-gradient(120deg,
-      rgba(0,245,255,.0) 0%,
-      rgba(255,0,255,.22) 18%,
-      rgba(155,91,255,.18) 35%,
-      rgba(255,184,77,.18) 52%,
-      rgba(0,245,255,.22) 70%,
-      rgba(255,0,255,.0) 100%);
-
-  mix-blend-mode:screen;
-  opacity:.85;
-  filter:saturate(1.2) contrast(1.05);
-}
-
-/* moving shine sweep */
-.card.holo::after{
-  content:"";
-  position:absolute;
-  inset:-40%;
-  border-radius:inherit;
-  pointer-events:none;
-  z-index:2;
-
-  background:linear-gradient(115deg,
-    transparent 0%,
-    rgba(255,255,255,.0) 38%,
-    rgba(255,255,255,.55) 50%,
-    rgba(255,255,255,.0) 62%,
-    transparent 100%);
-  transform:translateX(-40%) rotate(8deg);
-  animation:holo-sweep 2.6s ease-in-out infinite;
-  mix-blend-mode:overlay;
-  opacity:.55;
-}
-
-@keyframes holo-sweep{
-  0%   { transform:translateX(-55%) rotate(8deg); opacity:.10; }
-  45%  { opacity:.65; }
-  100% { transform:translateX(55%) rotate(8deg); opacity:.10; }
-}
-
-/* make content render above foil layers */
-.card.holo > *{ position:relative; z-index:3; }
-
-/* optional: give holo cards a “foil rim” */
-.card.holo{
-  box-shadow:
-    0 18px 55px rgba(0,0,0,.35),
-    0 0 0 1px rgba(255,255,255,.18) inset,
-    0 0 24px rgba(0,245,255,.18);
-}
-
-  
-  .holo .img{ outline:2px dashed var(--c-legend); outline-offset:4px; }
-
-  .desc{
-    color:var(--muted);
-    font-size:14px;
-    min-height:22px;
-    text-align:center;
-    margin-top:6px;
-    line-height:1.3;
-    background:linear-gradient(90deg,#7dd3fc,#c084fc,#00C2C7);
-    -webkit-background-clip:text;
-    -webkit-text-fill-color:transparent;
-    font-weight:600;
-    filter:drop-shadow(0 0 6px rgba(0,194,199,0.25));
-  }
-
-  .meta{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    color:var(--muted);
-    font-size:12px;
-    margin-top:6px;
-  }
-  .play{
-    margin-top:12px; width:100%; padding:10px 12px; border:none; border-radius:10px;
-    font-weight:800; cursor:pointer; background:var(--accent); color:#031b1c;
-  }
-  .play[disabled]{ opacity:.45; cursor:not-allowed; }
-
-  /* rarity colors */
-  .common .name{ color:var(--c-common); }
-  .rare   .name{ color:var(--c-rare); }
-  .epic   .name{ color:var(--c-epic); }
-  .legendary .name{ color:var(--c-legend); }
-
-  /* SKELETON */
-  .skeleton{
-    background:rgba(255,255,255,.04);
-    border:1px dashed var(--ring2);
-    border-radius:16px;
-    height:220px;
-    animation:pulse 1.3s ease-in-out infinite;
-  }
-  @keyframes pulse{ 0%{opacity:.6} 50%{opacity:.85} 100%{opacity:.6} }
-
-  /* TOAST */
-  .toast{
-    position:fixed; top:14px; left:50%; transform:translateX(-50%);
-    background:#0f1722;
-    border:1px solid var(--ring);
-    border-radius:10px;
-    padding:10px 14px;
-    font-weight:800;
-    z-index:9999;
-    display:none;
-  }
-  #packReveal{
-  position:fixed; inset:0; z-index:50;
-  display:none;
-  align-items:center; justify-content:center;
-  background:rgba(0,0,0,.65);
-  backdrop-filter: blur(6px);
-}
-
-.reveal-stage{
-  width:min(980px, calc(100vw - 28px));
-  border-radius:18px;
-  border:1px solid var(--ring);
-  background:linear-gradient(145deg,#05060a 0,#050712 30%,#020308 100%);
-  box-shadow:0 30px 120px rgba(0,0,0,.65);
-  padding:14px;
-}
-
-.reveal-header{
-  display:flex; align-items:center; justify-content:space-between;
-  padding:6px 6px 12px 6px;
-}
-
-.reveal-title{
-  font-weight:900;
-  letter-spacing:.06em;
-}
-
-.reveal-cards{
-  display:grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap:14px;
-}
-
-.reveal-card{
-  border-radius:16px;
-  border:1px solid var(--ring2);
-  background:radial-gradient(circle at top left, #171c30 0%, #05060a 55%, #05060a 100%);
-  padding:12px;
-  transform: translateY(18px) scale(.98);
-  opacity:0;
-  animation: reveal-in 420ms ease-out forwards;
-}
-
-@keyframes reveal-in{
-  to { transform: translateY(0) scale(1); opacity:1; }
-}
-
-.reveal-card .top{
-  display:flex; justify-content:space-between; align-items:center;
-  gap:10px;
-}
-
-.reveal-pill{
-  font-size:11px;
-  font-weight:900;
-  padding:3px 10px;
-  border-radius:999px;
-  border:1px solid var(--ring);
-  background:rgba(0,0,0,.25);
-}
-
-.reveal-img{
-  width:100%; height:150px; object-fit:contain;
-  border-radius:12px; background:#070b11;
-  margin:10px 0 6px 0;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);
-}
-
-.reveal-desc{
-  font-size:13px;
-  color:var(--muted);
-  text-align:center;
-  line-height:1.25;
-}
-
-.reveal-holo{
-  outline:2px dashed var(--c-legend);
-  outline-offset:4px;
-}
-  .reveal-card{
-  position:relative;
-}
-
-.reveal-card::after{
-  content:"";
-  position:absolute;
-  inset:-1px;
-  border-radius:16px;
-  pointer-events:none;
-  opacity:.55;
-  filter: blur(10px);
-}
-
-.card.zero { opacity: .6; }
-.card.zero .play { opacity: .5; }
-
-
-/* Rarity glow variants */
-.reveal-card.r-special::after   { box-shadow: 0 0 26px rgba(255,0,255,.25); }
-.reveal-card.r-legendary::after { box-shadow: 0 0 26px rgba(255,184,77,.22); }
-.reveal-card.r-epic::after      { box-shadow: 0 0 26px rgba(155,91,255,.22); }
-.reveal-card.r-rare::after      { box-shadow: 0 0 26px rgba(0,245,255,.20); }
-.reveal-card.r-common::after    { box-shadow: 0 0 18px rgba(160,160,181,.14); }
-
-
-
-  /* notice */
- .notice{ color:var(--muted); margin:10px 2px; }
-
-.gameFilter { display:flex; gap:8px; margin:10px 0; flex-wrap:wrap; }
-.gameFilter .gbtn { padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.15); background:transparent; color:inherit; cursor:pointer; }
-.gameFilter .gbtn.active { border-color: rgba(255,255,255,.45); }
-
-
-</style>
+    .meta{ display:flex; justify-content:space-between; align-items:center; color:var(--muted); font-size:12px; margin-top:8px; gap:10px; }
+    .play{
+      margin-top:12px;
+      width:100%;
+      padding:10px 12px;
+      border:none;
+      border-radius:10px;
+      font-weight:800;
+      cursor:pointer;
+      background:var(--accent);
+      color:#031b1c;
+    }
+    .play[disabled]{ opacity:.45; cursor:not-allowed; }
+
+    .card.zero{ opacity:.6; }
+    .card.zero .play{ opacity:.5; }
+
+    /* rarity name tint */
+    .common .name{ color:var(--c-common); }
+    .rare .name{ color:var(--c-rare); }
+    .epic .name{ color:var(--c-epic); }
+    .legendary .name{ color:var(--c-legend); }
+
+    /* HOLO FOIL */
+    .card.holo{ position:relative; isolation:isolate; }
+    .card.holo::before{
+      content:"";
+      position:absolute; inset:-2px; border-radius:inherit; pointer-events:none; z-index:1;
+      background: linear-gradient(120deg,
+        rgba(0,245,255,.0) 0%,
+        rgba(255,0,255,.22) 18%,
+        rgba(155,91,255,.18) 35%,
+        rgba(255,184,77,.18) 52%,
+        rgba(0,245,255,.22) 70%,
+        rgba(255,0,255,.0) 100%
+      );
+      mix-blend-mode:screen;
+      opacity:.85;
+      filter:saturate(1.2) contrast(1.05);
+    }
+    .card.holo::after{
+      content:"";
+      position:absolute; inset:-40%; border-radius:inherit; pointer-events:none; z-index:2;
+      background:linear-gradient(115deg,
+        transparent 0%,
+        rgba(255,255,255,.0) 38%,
+        rgba(255,255,255,.55) 50%,
+        rgba(255,255,255,.0) 62%,
+        transparent 100%
+      );
+      transform:translateX(-40%) rotate(8deg);
+      animation:holo-sweep 2.6s ease-in-out infinite;
+      mix-blend-mode:overlay;
+      opacity:.55;
+    }
+    @keyframes holo-sweep{
+      0% { transform:translateX(-55%) rotate(8deg); opacity:.10; }
+      45% { opacity:.65; }
+      100% { transform:translateX(55%) rotate(8deg); opacity:.10; }
+    }
+    .card.holo > *{ position:relative; z-index:3; }
+
+    /* TOAST */
+    .toast{
+      position:fixed;
+      top:14px;
+      left:50%;
+      transform:translateX(-50%);
+      background:#0f1722;
+      border:1px solid var(--ring);
+      border-radius:10px;
+      padding:10px 14px;
+      font-weight:800;
+      z-index:9999;
+      display:none;
+    }
+
+    /* PACK REVEAL MODAL */
+    #packReveal{
+      position:fixed;
+      inset:0;
+      z-index:50;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      background:rgba(0,0,0,.65);
+      backdrop-filter: blur(6px);
+    }
+    .reveal-stage{
+      width:min(980px, calc(100vw - 28px));
+      border-radius:18px;
+      border:1px solid var(--ring);
+      background:linear-gradient(145deg,#05060a 0,#050712 30%,#020308 100%);
+      box-shadow:0 30px 120px rgba(0,0,0,.65);
+      padding:14px;
+    }
+    .reveal-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:6px 6px 12px 6px;
+      gap:10px;
+    }
+    .reveal-title{ font-weight:900; letter-spacing:.06em; }
+    .reveal-cards{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap:14px;
+    }
+    .reveal-card{
+      border-radius:16px;
+      border:1px solid var(--ring2);
+      background:radial-gradient(circle at top left, #171c30 0%, #05060a 55%, #05060a 100%);
+      padding:12px;
+      transform: translateY(18px) scale(.98);
+      opacity:0;
+      animation: reveal-in 420ms ease-out forwards;
+      position:relative;
+    }
+    @keyframes reveal-in{ to { transform: translateY(0) scale(1); opacity:1; } }
+    .reveal-card .top{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
+    .reveal-pill{
+      font-size:11px;
+      font-weight:900;
+      padding:3px 10px;
+      border-radius:999px;
+      border:1px solid var(--ring);
+      background:rgba(0,0,0,.25);
+    }
+    .reveal-img{
+      width:100%;
+      height:150px;
+      object-fit:contain;
+      border-radius:12px;
+      background:#070b11;
+      margin:10px 0 6px 0;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);
+    }
+    .reveal-desc{ font-size:13px; color:var(--muted); text-align:center; line-height:1.25; }
+    .reveal-holo{ outline:2px dashed var(--c-legend); outline-offset:4px; }
+  </style>
 </head>
+
 <body>
-<!-- <div class="stars"></div> -->
+  <div class="app-shell">
+    <div class="app-inner">
+      <div class="app-inner-body">
 
+        <div class="hero">
+          <div class="brand">
+            <div class="logo">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 2l2.7 5.47 6.03.88-4.36 4.25 1.03 6.01L12 15.9l-5.4 2.71 1.03-6.01L3.27 8.35l6.03-.88L12 2z"/>
+              </svg>
+            </div>
+            <div>
+              <div class="title">Your Wonderland Cards</div>
+              <div class="subtitle">See your inventory and play cards on stream</div>
+            </div>
+          </div>
 
-<div class="app-shell">
-  <div class="app-inner">
-    <div class="app-inner-body">
+          <div class="controls">
+            <input id="uname" class="in" placeholder="Twitch name (e.g. momapix3l)"/>
+            <input id="pin" class="in" placeholder="PIN (if set)"/>
+            <button id="save" class="btn">Enter</button>
+            <button id="refresh" class="btn secondary">Refresh</button>
+          </div>
+        </div>
 
-  <div class="hero">
-    <div class="brand">
-      <div class="logo">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M12 2l2.7 5.47 6.03.88-4.36 4.25 1.03 6.01L12 15.9l-5.4 2.71 1.03-6.01L3.27 8.35l6.03-.88L12 2z"/>
-        </svg>
+        <div class="filters">
+          <input id="search" class="in search" placeholder="Search cards…"/>
+          <div class="toggle">
+            <input id="onlyHolo" type="checkbox" class="chk"/>
+            <label for="onlyHolo">Show holographics only ✨</label>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="showZeroToggle" class="chk"> Show cards with 0 charges
+          </label>
+          <!-- Game filter will be injected here by JS -->
+        </div>
+
+        <div id="notice" class="notice">Enter your Twitch name and press Enter.</div>
+
+        <div class="tabs" id="tabs"></div>
+        <div class="stats" id="stats"></div>
+
+        <div id="packsArea" class="packsArea">
+          You have <span id="packCount">0</span> unopened pack(s).
+          <button id="openPackBtn" class="btn secondary" disabled>Open Pack</button>
+        </div>
+
+        <div id="giftArea" class="packsArea" style="display:none;">
+          You received <span id="giftCount">0</span> new card(s).
+          <button id="showNewBtn" class="btn secondary">Show</button>
+        </div>
+
+        <div id="lastPack"></div>
+
+        <div id="packReveal">
+          <div class="reveal-stage">
+            <div class="reveal-header">
+              <div class="reveal-title" id="revealTitle">New Cards</div>
+              <button id="revealClose" class="btn secondary">Close</button>
+            </div>
+            <div id="revealCards" class="reveal-cards"></div>
+          </div>
+        </div>
+
+        <div class="grid" id="grid"></div>
+
+        <div id="toast" class="toast">Toast</div>
+
+        <div style="margin-top:40px; text-align:center; font-size:13px;">
+          <a href="https://momapix3l.github.io/stream-games-landing/" style="color: var(--accent); text-decoration:none;">
+            Back to Wonderland Overview
+          </a>
+        </div>
+
       </div>
-      <div>
-        <div class="title">Your Wonderland Cards</div>
-        <div class="subtitle">See your inventory and play cards on stream</div>
-      </div>
-    </div>
-    <div class="controls">
-      <input id="uname" class="in" placeholder="Twitch name (e.g. momapix3l)"/>
-      <input id="pin"   class="in" placeholder="PIN (if set)"/>
-      <button id="save"    class="btn">Enter</button>
-      <button id="refresh" class="btn secondary">Refresh</button>
     </div>
   </div>
-
-  <div class="filters">
-    <input id="search" class="in search" placeholder="Search cards…"/>
-    <div class="toggle">
-      <input id="onlyHolo" type="checkbox" class="chk"/>
-      <label for="onlyHolo">Show holographics only ✨</label>
-    </div>
-    <div> 
-        <label class="toggle">
-            <input type="checkbox" id="showZeroToggle">Show cards with 0 charges</label>
-    </div>
-  </div>
-
-  <div id="notice" class="notice">Enter your Twitch name and press Enter.</div>
-
-  <div class="tabs" id="tabs"></div>
-  <div class="stats" id="stats"></div>
-
-  <div id="packsArea" class="packsArea">
-    You have <span id="packCount">0</span> unopened pack(s).
-    <button id="openPackBtn" class="btn secondary" disabled>Open Pack</button>
-  </div>
-      
-  <div id="giftArea" class="packsArea" style="display:none;">
-      You received <span id="giftCount">0</span> new card(s).
-      <button id="showNewBtn" class="btn secondary">Show</button>
-   </div>
-
- <div id="lastPack" class="lastPack" style="display:none;"></div>
-
-<!-- Pack open animation overlay -->
-<div id="packAnim">
-  <div class="pack-anim-box">
-    <div class="pack-anim-inner">
-      <div class="pack-anim-title">OPENING PACK</div>
-      <div class="pack-anim-sub">Summoning your Wonderland cards…</div>
-    </div>
-    <div class="pack-anim-shine"></div>
-  </div>
-</div>
-
-<div id="packReveal" style="display:none;">
-  <div class="reveal-stage">
-    <div class="reveal-header">
-      <div class="reveal-title">New Cards</div>
-      <button id="revealClose" class="btn secondary">Close</button>
-    </div>
-    <div id="revealCards" class="reveal-cards"></div>
-  </div>
-</div>
-
-
-<div class="grid" id="grid">
-  <div class="skeleton"></div>
-  <div class="skeleton"></div>
-  <div class="skeleton"></div>
-</div>
-
-
-<div id="toast" class="toast">Toast</div>
 
 <script>
-/* ============== CONFIG ============== */
-const API = 'https://script.google.com/macros/s/AKfycbyyyW55Y_FEYSWtZlBflf0UVcTowONpHzmheRtPd7E0zqVxnfiHUzjbw-AoTwVecXA/exec'; // your /exec URL
+/* =========================================================
+   CONFIG
+   ========================================================= */
+const API = 'https://script.google.com/macros/s/AKfycbyyyW55Y_FEYSWtZlBflf0UVcTowONpHzmheRtPd7E0zqVxnfiHUzjbw-AoTwVecXA/exec';
+
 const RARITIES = ['common','rare','epic','legendary','special'];
-let SHOW_ZERO = false;     // show cards with 0 charges
+const GAME_KEYS = ['all','arc','fortnite','general']; // UI-only; actual matching uses item.tags[]
 
+/* =========================================================
+   DOM + STATE
+   ========================================================= */
+const $ = (id) => document.getElementById(id);
 
-  
+const grid   = $('grid');
+const tabs   = $('tabs');
+const stats  = $('stats');
+const notice = $('notice');
+
+let SHOW_ZERO   = false;
+let ACTIVE      = 'all';   // rarity tab
+let ACTIVE_GAME = 'all';   // game/deck filter
+
+let INVENTORY = [];        // inventory items from API
+let SUM       = null;      // summary payload
+let timers    = [];        // cooldown timer intervals
+
+const INV_SNAP_KEY = 'tcr_inv_snapshot';
+
+/* =========================================================
+   HELPERS (safe + predictable)
+   ========================================================= */
+function normalizeUser(u){
+  return String(u || '').trim().replace(/^@+/, '').toLowerCase();
+}
+
+/* IMPORTANT: prevents DOM id crashes & fixes your "safeId not defined" issue */
+function safeId(s){
+  return String(s || '').replace(/[^a-zA-Z0-9_-]/g, '_');
+}
+
+function fmt(sec){
+  sec = Math.max(0, parseInt(sec, 10) || 0);
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return (m <= 0) ? `${s}s` : `${m}m ${s}s`;
+}
+
 const RNAME = r => ({
-common:'Common', rare:'Rare', epic:'Epic', legendary:'Legendary', special:'Special'
-})[r] || r;
+  common:'Common', rare:'Rare', epic:'Epic', legendary:'Legendary', special:'Special'
+}[r] || r);
 
 const RCOLOR = r => ({
   special:'var(--accent2)',
@@ -690,45 +513,70 @@ const RCOLOR = r => ({
   rare:'var(--c-rare)',
   epic:'var(--c-epic)',
   legendary:'var(--c-legend)'
-})[r] || '#ccc';
+}[r] || '#ccc');
 
-
-/* ============== storage helpers ============== */
-const getUser  = () => (localStorage.getItem('tcr_user')  || '').trim().toLowerCase();
-const getPin   = () => (localStorage.getItem('tcr_pin')   || '').trim(); // temporary until login succeeds
-const getToken = () => (localStorage.getItem('tcr_token') || '').trim();
-
-const setUser  = u => localStorage.setItem('tcr_user', (u||'').trim().toLowerCase());
-const setPin   = p => localStorage.setItem('tcr_pin',  (p||'').trim());
-const setToken = t => localStorage.setItem('tcr_token',(t||'').trim());
-
-const clearPin = () => localStorage.removeItem('tcr_pin');
-const clearToken = () => localStorage.removeItem('tcr_token');
-
-function matchesGame(it){
-  if (ACTIVE_GAME === 'all') return true;
-  const tags = Array.isArray(it.tags) ? it.tags : [];
-  return tags.includes(ACTIVE_GAME);
+function toast(msg, ms=1800){
+  const t = $('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.style.display='none', ms);
 }
 
+/* =========================================================
+   STORAGE (user / pin / token)
+   ========================================================= */
+const getUser  = () => normalizeUser(localStorage.getItem('tcr_user') || '');
+const getPin   = () => String(localStorage.getItem('tcr_pin') || '').trim();
+const getToken = () => String(localStorage.getItem('tcr_token') || '').trim();
 
-/* JSONP helper (for Apps Script GET endpoints) */
-function jsonp(url, params = {}) {
+const setUser  = (u) => localStorage.setItem('tcr_user', normalizeUser(u));
+const setPin   = (p) => localStorage.setItem('tcr_pin', String(p||'').trim());
+const setToken = (t) => localStorage.setItem('tcr_token', String(t||'').trim());
+
+const clearPin   = () => localStorage.removeItem('tcr_pin');
+const clearToken = () => localStorage.removeItem('tcr_token');
+
+/* Decode token payload (no signature check; used only to prevent user/token mismatch) */
+function tokenUser(token){
+  try{
+    const parts = String(token||'').split('.');
+    if (parts.length !== 2) return '';
+    const payload = parts[0].replace(/-/g,'+').replace(/_/g,'/');
+    const json = decodeURIComponent(escape(atob(payload)));
+    const obj = JSON.parse(json);
+    return normalizeUser(obj.u || '');
+  }catch(_){
+    return '';
+  }
+}
+
+/* =========================================================
+   JSONP (Apps Script-friendly)
+   ========================================================= */
+function jsonp(url, params = {}){
   return new Promise((resolve, reject) => {
     const cb = 'tcr_cb_' + Math.random().toString(36).slice(2);
     params.cb = cb;
+
     const qs = Object.entries(params)
       .map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
       .join('&');
+
     const full = url + (url.includes('?') ? '&' : '?') + qs;
 
     const s = document.createElement('script');
     s.src = full;
     s.async = true;
 
-    window[cb] = data => {
-      try { resolve(data); } finally { delete window[cb]; s.remove(); }
+    window[cb] = (data) => {
+      try{ resolve(data); }
+      finally{
+        delete window[cb];
+        s.remove();
+      }
     };
+
     s.onerror = () => {
       delete window[cb];
       s.remove();
@@ -739,29 +587,17 @@ function jsonp(url, params = {}) {
   });
 }
 
-async function apiGet(action, params = {}){
-  const qs = new URLSearchParams({ action, ...params }).toString();
-  const r = await fetch(`${API}?${qs}`);
-  return r.json();
-}
-
-
-  async function apiPost(payload){
-  const r = await fetch(API, {
-    method: "POST",
-    headers: { "Content-Type":"application/json" },
-    body: JSON.stringify(payload)
-  });
-  return r.json();
-}
-  
 async function ensureLoginJSONP(){
   const u = getUser();
   if (!u) throw new Error('missing_user');
 
-  // If we already have a token, try using it.
+  // If token exists but belongs to a different user, discard it.
   const existing = getToken();
-  if (existing) return existing;
+  if (existing){
+    const tu = tokenUser(existing);
+    if (tu && tu === u) return existing;
+    clearToken();
+  }
 
   // No token => must login with PIN
   const p = getPin();
@@ -771,131 +607,59 @@ async function ensureLoginJSONP(){
   if (!res || !res.ok) throw new Error((res && res.error) || 'login_failed');
 
   setToken(res.token);
-
-  // Optional: clear PIN after successful login
-  localStorage.removeItem('tcr_pin');
-  const pinEl = $('pin');
-  if (pinEl) pinEl.value = '';
+  clearPin();                // never keep PIN after success
+  if ($('pin')) $('pin').value = '';
 
   return res.token;
 }
 
-
-
-
-/* ============== ui + state ============== */
-const $ = id => document.getElementById(id);
-const grid   = $('grid');
-const tabs   = $('tabs');
-const stats  = $('stats');
-const notice = $('notice');
-const search   = $('search');
-const onlyHolo = $('onlyHolo');
-
-let INVENTORY = [];
-let ACTIVE    = 'all';
-let timers    = [];
-let SUM       = null;
-let lastPackTimer = null;  // ⬅ for auto-hiding the last pack box
-
-let ACTIVE_GAME = 'all'; // 'all' | 'arc' | 'fortnite' | 'general'
-
-
-const INV_SNAP_KEY = 'tcr_inv_snapshot';
-
+/* =========================================================
+   SNAPSHOT (detect new cards)
+   ========================================================= */
 function snapshotMap(items){
   const m = {};
   (items || []).forEach(it => { m[String(it.cardId)] = Number(it.qty || 0); });
   return m;
 }
-
+function saveSnapshot(items){
+  localStorage.setItem(INV_SNAP_KEY, JSON.stringify(snapshotMap(items)));
+}
+function loadSnapshot(){
+  try { return JSON.parse(localStorage.getItem(INV_SNAP_KEY) || '{}') || {}; }
+  catch(_) { return {}; }
+}
 function diffNew(prevMap, items){
   const added = [];
   (items || []).forEach(it => {
     const id = String(it.cardId);
     const prev = Number(prevMap[id] || 0);
     const cur  = Number(it.qty || 0);
-    if (cur > prev) added.push({ cardId:id, name:it.name, rarity:it.rarity, delta:cur-prev });
+    if (cur > prev){
+      added.push({
+        cardId:id,
+        name:it.name,
+        rarity:it.rarity,
+        delta:cur-prev,
+        imageUrl: it.imageUrl,
+        desc: it.desc,
+        isHolo: String(it.cardId).endsWith(':holo')
+      });
+    }
   });
   return added;
 }
 
-function saveSnapshot(items){
-  localStorage.setItem(INV_SNAP_KEY, JSON.stringify(snapshotMap(items)));
-}
-
-function loadSnapshot(){
-  try { return JSON.parse(localStorage.getItem(INV_SNAP_KEY) || '{}') || {}; }
-  catch(_) { return {}; }
-}
-
-/* toast */
-function toast(msg,ms=1800){
-  const t = $('toast');
-  t.textContent = msg;
-  t.style.display = 'block';
-  clearTimeout(toast._t);
-  toast._t = setTimeout(() => t.style.display='none', ms);
-}
-
-/* tabs + stats */
-function renderTabs(){
-  tabs.innerHTML = '';
-  tabs.appendChild(makeTab('all','All',null,true));
-  RARITIES.forEach(r =>
-    tabs.appendChild(makeTab(r, RNAME(r), SUM?.userCounts?.[r] || 0, false))
-  );
-  setActive(ACTIVE);
-}
-function makeTab(key,label,count,isFirst){
-  const d = document.createElement('div');
-  d.className = 'tab';
-  d.dataset.key = key;
-  if(isFirst) d.classList.add('active');
-  d.innerHTML = label + (count != null ? `<span class="pill">${count}</span>` : '');
-  d.onclick = () => { setActive(key); renderGrid(); };
-  return d;
-}
-function setActive(key){
-  ACTIVE = key;
-  [...tabs.children].forEach(
-    n => n.classList.toggle('active', n.dataset.key === key)
-  );
-}
-
-function renderStats(){
-  stats.innerHTML = '';
-  if(!SUM) return;
-
-  const box = (label,val,color) =>
-    `<div class="stat"><span style="color:${color}">${label}:</span> <b>${val}</b></div>`;
-
-  stats.innerHTML =
-    `<div class="stat">Catalog: <b>${SUM.totalCatalog || 0}</b></div>` +
-    box('Common',    SUM.userCounts?.common    || 0, RCOLOR('common')) +
-    box('Rare',      SUM.userCounts?.rare      || 0, RCOLOR('rare')) +
-    box('Epic',      SUM.userCounts?.epic      || 0, RCOLOR('epic')) +
-    box('Legendary', SUM.userCounts?.legendary || 0, RCOLOR('legendary')) +
-    box('Special',   SUM.userCounts?.special   || 0, RCOLOR('special'));
-
-  const packs    = SUM.packs || 0;
-  const packSpan = $('packCount');
-  const openBtn  = $('openPackBtn');
-  if (packSpan) packSpan.textContent = packs;
-  if (openBtn)  openBtn.disabled = packs <= 0;
-}
-
+/* =========================================================
+   GAME FILTER UI (injected into .filters)
+   ========================================================= */
 function mountGameFilter(){
-  const host =
-    document.querySelector('#filters') ||
-    document.querySelector('.filters') ||
-    document.querySelector('.toolbar') ||
-    document.querySelector('#controls') ||
-    document.body;
+  const host = document.querySelector('.filters') || document.body;
+
+  // Avoid double-mount if you ever call init twice
+  if (host.querySelector('.gameFilter')) return;
 
   const wrap = document.createElement('div');
   wrap.className = 'gameFilter';
-
   wrap.innerHTML = `
     <button data-game="all" class="gbtn">All</button>
     <button data-game="arc" class="gbtn">Arc</button>
@@ -903,70 +667,137 @@ function mountGameFilter(){
     <button data-game="general" class="gbtn">General</button>
   `;
 
-  host.prepend(wrap);
+  host.appendChild(wrap);
 
-  // Event delegation: ONE listener for all buttons
   wrap.addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-game]');
     if (!btn) return;
 
-    ACTIVE_GAME = btn.dataset.game;
+    ACTIVE_GAME = btn.dataset.game || 'all';
     updateGameButtons(wrap);
-    renderGrid(); // ← this is YOUR render function
+    renderGrid();
   });
 
   updateGameButtons(wrap);
 }
 
+function updateGameButtons(wrap){
+  wrap.querySelectorAll('button[data-game]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.game === ACTIVE_GAME);
+  });
+}
 
-/* grid */
+/* =========================================================
+   TABS + STATS
+   ========================================================= */
+function makeTab(key, label, count){
+  const d = document.createElement('div');
+  d.className = 'tab';
+  d.dataset.key = key;
+  d.innerHTML = label + (count != null ? `<span class="pill">${count}</span>` : '');
+  d.onclick = () => { setActive(key); renderGrid(); };
+  return d;
+}
+
+function setActive(key){
+  ACTIVE = key;
+  [...tabs.children].forEach(n => n.classList.toggle('active', n.dataset.key === key));
+}
+
+function renderTabs(){
+  tabs.innerHTML = '';
+  tabs.appendChild(makeTab('all','All', null));
+  RARITIES.forEach(r => {
+    const cnt = (SUM && SUM.userCounts && SUM.userCounts[r]) ? SUM.userCounts[r] : 0;
+    tabs.appendChild(makeTab(r, RNAME(r), cnt));
+  });
+  setActive(ACTIVE);
+}
+
+function renderStats(){
+  stats.innerHTML = '';
+  if(!SUM) return;
+
+  stats.innerHTML = `<div class="stat">Catalog: <b>${SUM.totalCatalog || 0}</b></div>`;
+
+  const packs    = SUM.packs || 0;
+  const packSpan = $('packCount');
+  const openBtn  = $('openPackBtn');
+
+  if (packSpan) packSpan.textContent = packs;
+  if (openBtn)  openBtn.disabled = packs <= 0;
+}
+
+/* =========================================================
+   GRID RENDER (ALL FILTERS APPLIED HERE)
+   ========================================================= */
 function renderGrid(){
+  // Clear existing countdown timers so we don’t leak intervals.
   timers.forEach(clearInterval);
   timers = [];
 
-  const query = (search.value || '').trim().toLowerCase();
-  const showHolo = !!onlyHolo.checked;
+  const query    = (($('search').value || '').trim().toLowerCase());
+  const showHolo = !!$('onlyHolo').checked;
 
   const filtered = INVENTORY.filter(it => {
-    if (ACTIVE !== 'all' && it.rarity !== ACTIVE) return false;
-      // NEW: Game/Deck filter
-    if (!matchesGame(it)) return false;
+    // 1) Rarity tab filter
+    if (ACTIVE !== 'all' && String(it.rarity) !== ACTIVE) return false;
+
+    // 2) Game filter (requires it.tags array; fails-safe if missing)
+    if (ACTIVE_GAME !== 'all'){
+      const tags = Array.isArray(it.tags) ? it.tags.map(x => String(x).toLowerCase()) : [];
+      if (!tags.includes(ACTIVE_GAME)) return false;
+    }
+
+    // 3) Holo filter
     if (showHolo && !String(it.cardId).endsWith(':holo')) return false;
+
+    // 4) Zero-charge filter
     if (!SHOW_ZERO && Number(it.qty || 0) <= 0) return false;
-    if (query && !(`${it.name} ${it.desc||''}`.toLowerCase().includes(query))) return false;
+
+    // 5) Search filter (FIXED: proper template string)
+    if (query){
+      const hay = `${it.name || ''} ${it.desc || ''}`.toLowerCase();
+      if (!hay.includes(query)) return false;
+    }
+
     return true;
   });
 
   grid.innerHTML = '';
+
   if (!filtered.length){
     grid.innerHTML = `<div class="notice">No cards match your filters.</div>`;
     return;
   }
 
-  for(const it of filtered){
+  for (const it of filtered){
     const isHolo = String(it.cardId).endsWith(':holo');
+
     const card = document.createElement('div');
     card.className = `card ${it.rarity} ${isHolo ? 'holo' : ''} ${Number(it.qty||0)<=0 ? 'zero' : ''}`;
 
+    const coolId = `cool-${safeId(it.cardId)}`;
+
     card.innerHTML = `
       <div class="titleRow">
-        <div class="name">${it.name || it.baseId}</div>
+        <div class="name">${it.name || it.baseId || it.cardId}</div>
         <div>
           ${isHolo ? '✨' : ''}
           <span class="rar" style="color:${RCOLOR(it.rarity)}">(${RNAME(it.rarity)})</span>
         </div>
       </div>
 
-      ${it.rarity === 'special' ? `<div class="tag special"><span class="tag-dot"></span>Limited</div>` : ''}
+      ${it.imageUrl
+        ? `<img class="img" src="${it.imageUrl}" alt="${(it.name||'card')}" />`
+        : `<div class="img"></div>`
+      }
 
-      ${it.imageUrl ? `<img class="img" src="${it.imageUrl}" alt="${it.name}"/>` : `<div class="img"></div>`}
       <div class="desc">${it.desc || ''}</div>
 
       <div class="meta">
         <div>Charges: <b>${Number(it.qty||0)}</b></div>
-        <div class="cool" id="cool-${safeId(it.cardId)}">
-          ${it.remain > 0 ? ('Cooldown: ' + fmt(it.remain)) : 'Ready'}
-        </div>
+        <div id="${coolId}">${it.remain > 0 ? ('Cooldown: ' + fmt(it.remain)) : 'Ready'}</div>
       </div>
 
       <button class="play" ${it.remain>0 || Number(it.qty||0)<=0 ? 'disabled' : ''}>Play</button>
@@ -974,131 +805,42 @@ function renderGrid(){
 
     const btn = card.querySelector('.play');
     btn.onclick = () => play(it.cardId);
+
     grid.appendChild(card);
 
-    if(it.remain > 0){
-      let left = it.remain;
-      const label = card.querySelector(`#cool-${safeId(it.cardId)}`);
+    // Live cooldown countdown
+    if (it.remain > 0){
+      let left = Number(it.remain) || 0;
+      const label = document.getElementById(coolId);
+
       const t = setInterval(() => {
         left = Math.max(0, left - 1);
-        label.textContent = left > 0 ? ('Cooldown: ' + fmt(left)) : 'Ready';
-        if(left === 0){
+        if (label) label.textContent = left > 0 ? ('Cooldown: ' + fmt(left)) : 'Ready';
+        if (left === 0){
           btn.disabled = false;
           clearInterval(t);
         }
       }, 1000);
+
       timers.push(t);
     }
   }
 }
 
-
-/* network */
-async function apiJSON(url,opts){
-  const r = await fetch(url,opts);
-  return r.json();
-}
-
-async function load(){
-  const u = getUser();
-
-  if (!u){
-    notice.textContent = 'Enter your Twitch name and press Enter.';
-    grid.innerHTML = '';
-    tabs.innerHTML = '';
-    stats.innerHTML = '';
-    return;
-  }
-
-  notice.textContent = 'Loading…';
-
-  try{
-  const token = await ensureLoginJSONP();
-  const [inv,sum] = await Promise.all([
-  jsonp(API, { action:'inventory', token }),
-  jsonp(API, { action:'summary', token })
-]);
-
-
-    if(!inv.ok){
-      notice.textContent = 'Error: ' + (inv.error || 'loading');
-      return;
-    }
-
-    INVENTORY = inv.items || [];
-    // Detect newly granted cards since last load
-const prev = loadSnapshot();
-const firstTime = !Object.keys(prev).length;
-const added = firstTime ? [] : diffNew(prev, INVENTORY);
-saveSnapshot(INVENTORY);
-
-/*const added = diffNew(prev, INVENTORY);
-saveSnapshot(INVENTORY);*/
-
-const giftArea  = $('giftArea');
-const giftCount = $('giftCount');
-const showBtn   = $('showNewBtn');
-
-if (added.length){
-  giftArea.style.display = 'flex';
-  giftCount.textContent = added.reduce((a,x)=>a + (x.delta||0), 0);
-
-  showBtn.onclick = () => {
-    // Switch tab to Special if any new specials, else All
-    const hasSpecial = added.some(x => String(x.rarity) === 'special');
-    setActive(hasSpecial ? 'special' : 'all');
-    renderGrid();
-
-    // Optional: toast details
-    const top = added[0];
-    toast(`New: ${top.name} (+${top.delta})`, 2200);
-
-    // Hide the banner after viewing
-    giftArea.style.display = 'none';
-  };
-} else {
-  giftArea.style.display = 'none';
-}
-
-    SUM       = sum || null;
-
-    renderTabs();
-    renderStats();
-    renderGrid();
-    notice.textContent = '';
-
-  } catch(e){
-    const msg = String(e?.message || e);
-
-    if (msg.includes("pin_required")){
-      notice.textContent = 'Enter your Twitch name and PIN, then press Enter.';
-    } else if (msg.includes("pin_required_or_invalid")){
-      notice.textContent = 'PIN incorrect or missing. Use the !cardpin command on stream to get your PIN.';
-      clearToken();
-    } else if (msg.includes("invalid_or_expired_token")){
-      notice.textContent = 'Session expired. Enter your PIN again.';
-      clearToken();
-    } else {
-      notice.textContent = 'Error: ' + msg;
-      console.error(e);
-    }
-  }
-}
-
-  
-
+/* =========================================================
+   API ACTIONS
+   ========================================================= */
 async function play(cardId){
   toast('Playing…', 1200);
   try{
-const token = await ensureLoginJSONP();
-const res = await jsonp(API, { action:'redeem', token, cardId });
+    const token = await ensureLoginJSONP();
+    const res = await jsonp(API, { action:'redeem', token, cardId });
 
-
-    if(res && res.ok){
+    if (res && res.ok){
       toast('Redeemed!');
-      load();
+      await load();
     } else {
-      toast('Error: ' + (res && res.error || 'failed'), 2400);
+      toast('Error: ' + ((res && res.error) || 'failed'), 2400);
     }
   } catch(e){
     console.error(e);
@@ -1106,54 +848,33 @@ const res = await jsonp(API, { action:'redeem', token, cardId });
   }
 }
 
-
 async function openPack(){
   const u = getUser();
-  if (!u){
-    toast('Set your Twitch name first', 2200);
-    return;
-  }
+  if (!u){ toast('Set your Twitch name first', 2200); return; }
 
-  const btn     = $('openPackBtn');
-  const animBox = $('packAnim');
-
-  // disable button while opening
+  const btn = $('openPackBtn');
   if (btn) btn.disabled = true;
 
-  // show pack animation
-  if (animBox) animBox.style.display = 'flex';
   toast('Opening pack…', 1200);
 
   try{
     const token = await ensureLoginJSONP();
-    const res   = await jsonp(API, { action:'openpack', token });
-
-    // let animation breathe
-    await new Promise(r => setTimeout(r, 900));
-    if (animBox) animBox.style.display = 'none';
+    const res = await jsonp(API, { action:'openpack', token });
 
     if (!res || !res.ok){
       toast('Error: ' + ((res && res.error) || 'cannot open pack'), 2600);
       return;
     }
 
-    // 1) Show reveal overlay with full card visuals
+    $('revealTitle').textContent = 'New Cards';
     showPackReveal(res.cards || []);
-
-    // 2) After user closes reveal, refresh inventory/tabs so cards appear in the grid
-    const closeBtn = $('revealClose');
-    if (closeBtn){
-      closeBtn.onclick = async () => {
-        $('packReveal').style.display = 'none';
-        $('revealCards').innerHTML = '';
-        await load();
-      };
-    }
 
   } catch(e){
     console.error(e);
-    if (animBox) animBox.style.display = 'none';
     toast('Network error while opening pack', 2600);
+  } finally {
+    // pack count updates on next load
+    await load();
   }
 }
 
@@ -1162,25 +883,12 @@ function showPackReveal(cards){
   const box  = $('revealCards');
   const btn  = $('revealClose');
 
-  if (!wrap || !box || !btn){
-    console.error('Pack reveal DOM missing:', { wrap, box, btn });
-    toast('UI error: pack reveal missing', 2400);
-    return;
-  }
-
-  // Determine if this is a single-card reveal
-  const isSolo = (cards || []).length === 1;
-
-  // Toggle compact layout class
-  wrap.classList.toggle('solo', isSolo);
-
   box.innerHTML = '';
 
   (cards || []).forEach((c, i) => {
     const rarity = String(c.rarity || 'common').toLowerCase();
-
     const d = document.createElement('div');
-    d.className = `reveal-card r-${rarity} ${c.isHolo ? 'reveal-holo' : ''}`;
+    d.className = `reveal-card ${c.isHolo ? 'reveal-holo' : ''}`;
     d.style.animationDelay = `${i * 140}ms`;
 
     const safeName = (c.name || c.baseId || 'Card');
@@ -1205,89 +913,161 @@ function showPackReveal(cards){
   btn.onclick = () => {
     wrap.style.display = 'none';
     box.innerHTML = '';
-    wrap.classList.remove('solo'); // reset for next time
   };
 }
 
-
-function renderInventory(inv){
-  if(!inv || !inv.items) return;
-
-  const showZero = document.getElementById('showZero').checked;
-
-  const items = showZero
-    ? inv.items
-    : inv.items.filter(it => Number(it.qty || 0) > 0);
-
-  // then your existing rendering loop uses `items` instead of `inv.items`
-}
-
-
-
-/* wire controls */
-document.addEventListener('DOMContentLoaded', () => {
-  $('uname').value = getUser();
-  $('pin').value   = getPin();
-  load();
-
-  const btnOpen = $('openPackBtn');
-  if (btnOpen) btnOpen.addEventListener('click', openPack);
-
-$('save').onclick = async () => {
-  const u = $('uname').value.trim();
-  const p = $('pin').value.trim();
+/* =========================================================
+   MAIN LOAD
+   ========================================================= */
+async function load(){
+  const u = getUser();
 
   if (!u){
-    toast('Enter your Twitch name', 2200);
+    notice.textContent = 'Enter your Twitch name and press Enter.';
+    grid.innerHTML = '';
+    tabs.innerHTML = '';
+    stats.innerHTML = '';
     return;
   }
 
-  setUser(u);
+  notice.textContent = 'Loading…';
 
-  // If they entered a PIN, store it temporarily and force a new login session.
-  if (p){
-    setPin(p);
-    clearToken(); // ensures we re-login with the new pin
+  try{
+    const token = await ensureLoginJSONP();
+
+    const [inv, sum] = await Promise.all([
+      jsonp(API, { action:'inventory', token }),
+      jsonp(API, { action:'summary', token })
+    ]);
+
+    if (!inv || !inv.ok){
+      notice.textContent = 'Error: ' + ((inv && inv.error) || 'loading');
+      return;
+    }
+
+    INVENTORY = inv.items || [];
+    SUM = sum || null;
+
+    // Detect new cards since last snapshot
+    const prev = loadSnapshot();
+    const firstTime = !Object.keys(prev).length;
+    const added = firstTime ? [] : diffNew(prev, INVENTORY);
+    saveSnapshot(INVENTORY);
+
+    // Gift area
+    const giftArea  = $('giftArea');
+    const giftCount = $('giftCount');
+    const showBtn   = $('showNewBtn');
+
+    if (added.length){
+      giftArea.style.display = 'flex';
+      giftCount.textContent = added.reduce((a,x)=>a + (x.delta||0), 0);
+
+      showBtn.onclick = () => {
+        $('revealTitle').textContent = 'New Cards';
+        showPackReveal(added.map(a => ({
+          name: a.name,
+          rarity: a.rarity,
+          isHolo: a.isHolo,
+          imageUrl: a.imageUrl || '',
+          desc: a.desc || ''
+        })));
+        giftArea.style.display = 'none';
+      };
+    } else {
+      giftArea.style.display = 'none';
+    }
+
+    renderTabs();
+    renderStats();
+    renderGrid();
+
+    notice.textContent = '';
+
+  } catch(e){
+    const msg = String(e && e.message ? e.message : e);
+    console.error(e);
+
+    if (msg.includes('pin_required_or_invalid')){
+      notice.textContent = 'PIN incorrect or missing. Use the !cardpin command on stream to get your PIN.';
+      clearToken();
+    } else if (msg.includes('invalid_or_expired_token')){
+      notice.textContent = 'Session expired. Enter your PIN again.';
+      clearToken();
+    } else if (msg.includes('pin_required')){
+      notice.textContent = 'Enter your Twitch name and PIN, then press Enter.';
+    } else {
+      notice.textContent = 'Error: ' + msg;
+    }
   }
+}
 
-  toast('Loading…');
-  await load();
-};
+/* =========================================================
+   WIRE CONTROLS (single init point)
+   ========================================================= */
+document.addEventListener('DOMContentLoaded', () => {
+  // Mount game filter UI once
+  mountGameFilter();
 
+  // Populate saved values
+  $('uname').value = getUser();
+  $('pin').value   = getPin();
+
+  // Initial load
+  load();
+
+  // Open pack
+  const btnOpen = $('openPackBtn');
+  if (btnOpen) btnOpen.addEventListener('click', openPack);
+
+  // Enter / Save
+  $('save').onclick = async () => {
+    const uRaw = $('uname').value;
+    const p    = $('pin').value.trim();
+
+    const nextUser = normalizeUser(uRaw);
+    if (!nextUser){
+      toast('Enter your Twitch name', 2200);
+      return;
+    }
+
+    const prevUser = getUser();
+    setUser(nextUser);
+
+    // If user changed, force a clean session.
+    if (nextUser !== prevUser){
+      clearToken();
+      clearPin();
+    }
+
+    // If PIN entered, store temporarily and force new login.
+    if (p){
+      setPin(p);
+      clearToken();
+    }
+
+    toast('Loading…');
+    await load();
+  };
+
+  // Show zero toggle
   const t = $('showZeroToggle');
   if (t){
     t.checked = SHOW_ZERO;
     t.addEventListener('change', () => {
       SHOW_ZERO = t.checked;
-      renderGrid(); // re-render without refetch
+      renderGrid();
     });
   }
 
+  // Refresh ..
   $('refresh').onclick = () => load();
+
+  // Live filters
   $('search').addEventListener('input', () => renderGrid());
   $('onlyHolo').addEventListener('change', () => renderGrid());
-
-  document.querySelectorAll('[data-game]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    ACTIVE_GAME = btn.dataset.game;  // 'all','arc','fortnite','general'
-    renderGrid();                    // IMPORTANT: call the function that rebuilds filtered + grid
-  });
 });
-});
-
 </script>
-
-      <div style="margin-top: 40px; text-align:center; font-size:13px;">
-  <a href="https://momapix3l.github.io/stream-games-landing/" style="color: var(--accent); text-decoration:none;">
-    Back to Wonderland Overview
-  </a>
-</div>
-
-    </div> <!-- app-inner-body -->
-  </div>   <!-- app-inner -->
-</div>     <!-- app-shell -->
-
 </body>
-</html>
-
+</html> 
 
