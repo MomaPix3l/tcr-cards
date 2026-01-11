@@ -575,7 +575,13 @@ body{
 
 
   /* notice */
-  .notice{ color:var(--muted); margin:10px 2px; }
+ .notice{ color:var(--muted); margin:10px 2px; }
+
+.gameFilter { display:flex; gap:8px; margin:10px 0; flex-wrap:wrap; }
+.gameFilter .gbtn { padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.15); background:transparent; color:inherit; cursor:pointer; }
+.gameFilter .gbtn.active { border-color: rgba(255,255,255,.45); }
+
+
 </style>
 </head>
 <body>
@@ -879,6 +885,38 @@ function renderStats(){
   if (openBtn)  openBtn.disabled = packs <= 0;
 }
 
+function mountGameFilter(){
+  const host =
+    document.querySelector('#filters') ||
+    document.querySelector('.filters') ||
+    document.querySelector('.toolbar') ||
+    document.querySelector('#controls') ||
+    document.body;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'gameFilter';
+
+  wrap.innerHTML = `
+    <button data-game="all" class="gbtn">All</button>
+    <button data-game="arc" class="gbtn">Arc</button>
+    <button data-game="fortnite" class="gbtn">Fortnite</button>
+    <button data-game="general" class="gbtn">General</button>
+  `;
+
+  host.prepend(wrap);
+
+  // Event delegation: ONE listener for all buttons
+  wrap.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-game]');
+    if (!btn) return;
+
+    ACTIVE_GAME = btn.dataset.game;
+    updateGameButtons(wrap);
+    renderGrid(); // ← this is YOUR render function
+  });
+
+  updateGameButtons(wrap);
+}
 
 
 /* grid */
