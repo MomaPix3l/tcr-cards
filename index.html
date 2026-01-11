@@ -699,6 +699,11 @@ const setToken = t => localStorage.setItem('tcr_token',(t||'').trim());
 const clearPin = () => localStorage.removeItem('tcr_pin');
 const clearToken = () => localStorage.removeItem('tcr_token');
 
+function matchesGame(it){
+  if (ACTIVE_GAME === 'all') return true;
+  const tags = Array.isArray(it.tags) ? it.tags : [];
+  return tags.includes(ACTIVE_GAME);
+}
 
 
 /* JSONP helper (for Apps Script GET endpoints) */
@@ -787,6 +792,9 @@ let timers    = [];
 let SUM       = null;
 let lastPackTimer = null;  // ⬅ for auto-hiding the last pack box
 
+let ACTIVE_GAME = 'all'; // 'all' | 'arc' | 'fortnite' | 'general'
+
+
 const INV_SNAP_KEY = 'tcr_inv_snapshot';
 
 function snapshotMap(items){
@@ -856,22 +864,22 @@ function renderStats(){
   const box = (label,val,color) =>
     `<div class="stat"><span style="color:${color}">${label}:</span> <b>${val}</b></div>`;
 
-  /*stats.innerHTML =
-    box('Common',    SUM.userCounts?.common    || 0, RCOLOR('common'))    +
-    box('Rare',      SUM.userCounts?.rare      || 0, RCOLOR('rare'))      +
-    box('Epic',      SUM.userCounts?.epic      || 0, RCOLOR('epic'))      +
-    box('Legendary', SUM.userCounts?.legendary || 0, RCOLOR('legendary')) + 
-    box('Special  ', SUM.userCounts?.special   || 0, RCOLOR('special')) + */
-   
-    `<div class="stat">Catalog: <b>${SUM.totalCatalog || 0}</b></div>`;
+  stats.innerHTML =
+    `<div class="stat">Catalog: <b>${SUM.totalCatalog || 0}</b></div>` +
+    box('Common',    SUM.userCounts?.common    || 0, RCOLOR('common')) +
+    box('Rare',      SUM.userCounts?.rare      || 0, RCOLOR('rare')) +
+    box('Epic',      SUM.userCounts?.epic      || 0, RCOLOR('epic')) +
+    box('Legendary', SUM.userCounts?.legendary || 0, RCOLOR('legendary')) +
+    box('Special',   SUM.userCounts?.special   || 0, RCOLOR('special'));
 
-  // Packs UI
   const packs    = SUM.packs || 0;
   const packSpan = $('packCount');
   const openBtn  = $('openPackBtn');
   if (packSpan) packSpan.textContent = packs;
   if (openBtn)  openBtn.disabled = packs <= 0;
 }
+
+
 
 /* grid */
 function renderGrid(){
@@ -883,6 +891,8 @@ function renderGrid(){
 
   const filtered = INVENTORY.filter(it => {
     if (ACTIVE !== 'all' && it.rarity !== ACTIVE) return false;
+      // NEW: Game/Deck filter
+    if (!matchesGame(it)) return false;
     if (showHolo && !String(it.cardId).endsWith(':holo')) return false;
     if (!SHOW_ZERO && Number(it.qty || 0) <= 0) return false;
     if (query && !(`${it.name} ${it.desc||''}`.toLowerCase().includes(query))) return false;
@@ -1218,6 +1228,13 @@ $('save').onclick = async () => {
   $('refresh').onclick = () => load();
   $('search').addEventListener('input', () => renderGrid());
   $('onlyHolo').addEventListener('change', () => renderGrid());
+
+  document.querySelectorAll('[data-game]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    ACTIVE_GAME = btn.dataset.game;  // 'all','arc','fortnite','general'
+    renderGrid();                    // IMPORTANT: call the function that rebuilds filtered + grid
+  });
+});
 });
 
 </script>
