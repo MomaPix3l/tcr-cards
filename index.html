@@ -456,43 +456,25 @@
   </div>
 
 <script>
-/* =========================================================
-   CONFIG
-   ========================================================= */
+/* ============== CONFIG ============== */
 const API = 'https://script.google.com/macros/s/AKfycbyyyW55Y_FEYSWtZlBflf0UVcTowONpHzmheRtPd7E0zqVxnfiHUzjbw-AoTwVecXA/exec';
-
 const RARITIES = ['common','rare','epic','legendary','special'];
-const GAME_KEYS = ['all','arc','fortnite','general']; // UI-only; actual matching uses item.tags[]
+const GAME_TAGS = ['arc','fortnite','general']; // the only tags your UI exposes as game/deck filters
 
-/* =========================================================
-   DOM + STATE
-   ========================================================= */
-const $ = (id) => document.getElementById(id);
+let SHOW_ZERO = false;
+let ACTIVE = 'all';          // rarity tab filter
+let ACTIVE_GAME = 'all';     // NEW: tag/game filter
 
-const grid   = $('grid');
-const tabs   = $('tabs');
-const stats  = $('stats');
-const notice = $('notice');
+/* ============== helpers ============== */
+const $ = id => document.getElementById(id);
 
-let SHOW_ZERO   = false;
-let ACTIVE      = 'all';   // rarity tab
-let ACTIVE_GAME = 'all';   // game/deck filter
-
-let INVENTORY = [];        // inventory items from API
-let SUM       = null;      // summary payload
-let timers    = [];        // cooldown timer intervals
-
-const INV_SNAP_KEY = 'tcr_inv_snapshot';
-
-/* =========================================================
-   HELPERS (safe + predictable)
-   ========================================================= */
 function normalizeUser(u){
   return String(u || '').trim().replace(/^@+/, '').toLowerCase();
 }
 
-/* IMPORTANT: prevents DOM id crashes & fixes your "safeId not defined" issue */
 function safeId(s){
+  // IMPORTANT: this function name must match usage everywhere.
+  // Your error "safeld is not defined" happens when this is misspelled somewhere.
   return String(s || '').replace(/[^a-zA-Z0-9_-]/g, '_');
 }
 
@@ -500,41 +482,29 @@ function fmt(sec){
   sec = Math.max(0, parseInt(sec, 10) || 0);
   const m = Math.floor(sec / 60);
   const s = sec % 60;
-  return (m <= 0) ? `${s}s` : `${m}m ${s}s`;
+  if (m <= 0) return `${s}s`;
+  return `${m}m ${s}s`;
 }
 
-const RNAME = r => ({
-  common:'Common', rare:'Rare', epic:'Epic', legendary:'Legendary', special:'Special'
-}[r] || r);
-
+const RNAME = r => ({ common:'Common', rare:'Rare', epic:'Epic', legendary:'Legendary', special:'Special' })[r] || r;
 const RCOLOR = r => ({
   special:'var(--accent2)',
   common:'var(--c-common)',
   rare:'var(--c-rare)',
   epic:'var(--c-epic)',
   legendary:'var(--c-legend)'
-}[r] || '#ccc');
+})[r] || '#ccc';
 
-function toast(msg, ms=1800){
-  const t = $('toast');
-  t.textContent = msg;
-  t.style.display = 'block';
-  clearTimeout(toast._t);
-  toast._t = setTimeout(() => t.style.display='none', ms);
-}
-
-/* =========================================================
-   STORAGE (user / pin / token)
-   ========================================================= */
-const getUser  = () => normalizeUser(localStorage.getItem('tcr_user') || '');
-const getPin   = () => String(localStorage.getItem('tcr_pin') || '').trim();
+/* ============== storage helpers ============== */
+const getUser = () => normalizeUser(localStorage.getItem('tcr_user') || '');
+const getPin = () => String(localStorage.getItem('tcr_pin') || '').trim();
 const getToken = () => String(localStorage.getItem('tcr_token') || '').trim();
 
-const setUser  = (u) => localStorage.setItem('tcr_user', normalizeUser(u));
-const setPin   = (p) => localStorage.setItem('tcr_pin', String(p||'').trim());
-const setToken = (t) => localStorage.setItem('tcr_token', String(t||'').trim());
+const setUser = u => localStorage.setItem('tcr_user', normalizeUser(u));
+const setPin = p => localStorage.setItem('tcr_pin', String(p||'').trim());
+const setToken = t => localStorage.setItem('tcr_token', String(t||'').trim());
 
-const clearPin   = () => localStorage.removeItem('tcr_pin');
+const clearPin = () => localStorage.removeItem('tcr_pin');
 const clearToken = () => localStorage.removeItem('tcr_token');
 
 /* Decode token payload (no signature check; used only to prevent user/token mismatch) */
@@ -551,27 +521,26 @@ function tokenUser(token){
   }
 }
 
-/* =========================================================
-   JSONP (Apps Script-friendly)
-   ========================================================= */
-function jsonp(url, params = {}){
+/* JSONP helper (for Apps Script GET endpoints) */
+function jsonp(url, params = {}) {
   return new Promise((resolve, reject) => {
     const cb = 'tcr_cb_' + Math.random().toString(36).slice(2);
     params.cb = cb;
+    // cache-buster so GitHub Pages doesn’t reuse stale script responses
+    params._t = Date.now();
 
     const qs = Object.entries(params)
       .map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
       .join('&');
 
     const full = url + (url.includes('?') ? '&' : '?') + qs;
-
     const s = document.createElement('script');
     s.src = full;
     s.async = true;
 
-    window[cb] = (data) => {
-      try{ resolve(data); }
-      finally{
+    window[cb] = data => {
+      try { resolve(data); }
+      finally {
         delete window[cb];
         s.remove();
       }
@@ -591,7 +560,6 @@ async function ensureLoginJSONP(){
   const u = getUser();
   if (!u) throw new Error('missing_user');
 
-  // If token exists but belongs to a different user, discard it.
   const existing = getToken();
   if (existing){
     const tu = tokenUser(existing);
@@ -599,7 +567,6 @@ async function ensureLoginJSONP(){
     clearToken();
   }
 
-  // No token => must login with PIN
   const p = getPin();
   if (!p) throw new Error('pin_required_or_invalid');
 
@@ -607,93 +574,103 @@ async function ensureLoginJSONP(){
   if (!res || !res.ok) throw new Error((res && res.error) || 'login_failed');
 
   setToken(res.token);
-  clearPin();                // never keep PIN after success
-  if ($('pin')) $('pin').value = '';
+  clearPin(); // never keep PIN after success
+
+  const pinEl = $('pin');
+  if (pinEl) pinEl.value = '';
 
   return res.token;
 }
 
-/* =========================================================
-   SNAPSHOT (detect new cards)
-   ========================================================= */
-function snapshotMap(items){
-  const m = {};
-  (items || []).forEach(it => { m[String(it.cardId)] = Number(it.qty || 0); });
-  return m;
-}
-function saveSnapshot(items){
-  localStorage.setItem(INV_SNAP_KEY, JSON.stringify(snapshotMap(items)));
-}
-function loadSnapshot(){
-  try { return JSON.parse(localStorage.getItem(INV_SNAP_KEY) || '{}') || {}; }
-  catch(_) { return {}; }
-}
-function diffNew(prevMap, items){
-  const added = [];
-  (items || []).forEach(it => {
-    const id = String(it.cardId);
-    const prev = Number(prevMap[id] || 0);
-    const cur  = Number(it.qty || 0);
-    if (cur > prev){
-      added.push({
-        cardId:id,
-        name:it.name,
-        rarity:it.rarity,
-        delta:cur-prev,
-        imageUrl: it.imageUrl,
-        desc: it.desc,
-        isHolo: String(it.cardId).endsWith(':holo')
-      });
-    }
-  });
-  return added;
+/* toast */
+function toast(msg,ms=1800){
+  const t = $('toast');
+  if(!t) return;
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.style.display='none', ms);
 }
 
-/* =========================================================
-   GAME FILTER UI (injected into .filters)
-   ========================================================= */
-function mountGameFilter(){
-  const host = document.querySelector('.filters') || document.body;
+/* ============== ui + state ============== */
+const grid = $('grid');
+const tabs = $('tabs');
+const stats = $('stats');
+const notice = $('notice');
+const search = $('search');
+const onlyHolo = $('onlyHolo');
 
-  // Avoid double-mount if you ever call init twice
-  if (host.querySelector('.gameFilter')) return;
+let INVENTORY = [];
+let timers = [];
+let SUM = null;
+
+/* ===================== TAG HELPERS (NEW) ===================== */
+function tagsArray(it){
+  if (Array.isArray(it.tags)) return it.tags.map(x=>String(x).toLowerCase());
+  const s = String(it.tagsStr || '').toLowerCase();
+  if(!s) return [];
+  return s.split(',').map(x=>x.trim()).filter(Boolean);
+}
+function matchesGameTag(it){
+  if (ACTIVE_GAME === 'all') return true;
+  const tags = tagsArray(it);
+  return tags.includes(ACTIVE_GAME);
+}
+
+/* ===================== GAME FILTER UI (NEW) ===================== */
+function renderGameFilter(){
+  const host = document.querySelector('.filters');
+  if(!host) return;
+
+  // If already mounted, do nothing (prevents duplicates on reload)
+  if (document.getElementById('gameFilter')) return;
 
   const wrap = document.createElement('div');
-  wrap.className = 'gameFilter';
+  wrap.id = 'gameFilter';
+  wrap.style.display = 'flex';
+  wrap.style.gap = '8px';
+  wrap.style.alignItems = 'center';
+  wrap.style.flexWrap = 'wrap';
+
   wrap.innerHTML = `
-    <button data-game="all" class="gbtn">All</button>
-    <button data-game="arc" class="gbtn">Arc</button>
-    <button data-game="fortnite" class="gbtn">Fortnite</button>
-    <button data-game="general" class="gbtn">General</button>
+    <button class="tab" data-game="all">All Games</button>
+    <button class="tab" data-game="arc">Arc</button>
+    <button class="tab" data-game="fortnite">Fortnite</button>
+    <button class="tab" data-game="general">General</button>
   `;
 
   host.appendChild(wrap);
 
   wrap.addEventListener('click', (e) => {
-    const btn = e.target.closest('button[data-game]');
-    if (!btn) return;
-
-    ACTIVE_GAME = btn.dataset.game || 'all';
-    updateGameButtons(wrap);
+    const b = e.target.closest('button[data-game]');
+    if(!b) return;
+    ACTIVE_GAME = b.dataset.game;
+    updateGameButtons();
     renderGrid();
   });
 
-  updateGameButtons(wrap);
+  function updateGameButtons(){
+    wrap.querySelectorAll('button[data-game]').forEach(b=>{
+      b.classList.toggle('active', b.dataset.game === ACTIVE_GAME);
+    });
+  }
+
+  updateGameButtons();
 }
 
-function updateGameButtons(wrap){
-  wrap.querySelectorAll('button[data-game]').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.game === ACTIVE_GAME);
-  });
+/* ===================== tabs + stats ===================== */
+function renderTabs(){
+  tabs.innerHTML = '';
+  tabs.appendChild(makeTab('all','All',null,true));
+  RARITIES.forEach(r => tabs.appendChild(makeTab(r, RNAME(r), (SUM?.userCounts?.[r] || 0), false)));
+  setActive(ACTIVE);
 }
 
-/* =========================================================
-   TABS + STATS
-   ========================================================= */
-function makeTab(key, label, count){
+function makeTab(key,label,count,isFirst){
   const d = document.createElement('div');
   d.className = 'tab';
   d.dataset.key = key;
+  if(isFirst) d.classList.add('active');
   d.innerHTML = label + (count != null ? `<span class="pill">${count}</span>` : '');
   d.onclick = () => { setActive(key); renderGrid(); };
   return d;
@@ -704,58 +681,34 @@ function setActive(key){
   [...tabs.children].forEach(n => n.classList.toggle('active', n.dataset.key === key));
 }
 
-function renderTabs(){
-  tabs.innerHTML = '';
-  tabs.appendChild(makeTab('all','All', null));
-  RARITIES.forEach(r => {
-    const cnt = (SUM && SUM.userCounts && SUM.userCounts[r]) ? SUM.userCounts[r] : 0;
-    tabs.appendChild(makeTab(r, RNAME(r), cnt));
-  });
-  setActive(ACTIVE);
-}
-
 function renderStats(){
   stats.innerHTML = '';
   if(!SUM) return;
 
   stats.innerHTML = `<div class="stat">Catalog: <b>${SUM.totalCatalog || 0}</b></div>`;
 
-  const packs    = SUM.packs || 0;
+  const packs = SUM.packs || 0;
   const packSpan = $('packCount');
   const openBtn  = $('openPackBtn');
-
   if (packSpan) packSpan.textContent = packs;
   if (openBtn)  openBtn.disabled = packs <= 0;
 }
 
-/* =========================================================
-   GRID RENDER (ALL FILTERS APPLIED HERE)
-   ========================================================= */
+/* ===================== grid ===================== */
 function renderGrid(){
-  // Clear existing countdown timers so we don’t leak intervals.
   timers.forEach(clearInterval);
   timers = [];
 
-  const query    = (($('search').value || '').trim().toLowerCase());
-  const showHolo = !!$('onlyHolo').checked;
+  const query = (search.value || '').trim().toLowerCase();
+  const showHolo = !!onlyHolo.checked;
 
   const filtered = INVENTORY.filter(it => {
-    // 1) Rarity tab filter
-    if (ACTIVE !== 'all' && String(it.rarity) !== ACTIVE) return false;
+    if (ACTIVE !== 'all' && it.rarity !== ACTIVE) return false;
+    if (!matchesGameTag(it)) return false;
 
-    // 2) Game filter (requires it.tags array; fails-safe if missing)
-    if (ACTIVE_GAME !== 'all'){
-      const tags = Array.isArray(it.tags) ? it.tags.map(x => String(x).toLowerCase()) : [];
-      if (!tags.includes(ACTIVE_GAME)) return false;
-    }
-
-    // 3) Holo filter
     if (showHolo && !String(it.cardId).endsWith(':holo')) return false;
-
-    // 4) Zero-charge filter
     if (!SHOW_ZERO && Number(it.qty || 0) <= 0) return false;
 
-    // 5) Search filter (FIXED: proper template string)
     if (query){
       const hay = `${it.name || ''} ${it.desc || ''}`.toLowerCase();
       if (!hay.includes(query)) return false;
@@ -765,13 +718,12 @@ function renderGrid(){
   });
 
   grid.innerHTML = '';
-
   if (!filtered.length){
     grid.innerHTML = `<div class="notice">No cards match your filters.</div>`;
     return;
   }
 
-  for (const it of filtered){
+  for(const it of filtered){
     const isHolo = String(it.cardId).endsWith(':holo');
 
     const card = document.createElement('div');
@@ -781,23 +733,28 @@ function renderGrid(){
 
     card.innerHTML = `
       <div class="titleRow">
-        <div class="name">${it.name || it.baseId || it.cardId}</div>
+        <div class="name">${it.name || it.baseId}</div>
         <div>
           ${isHolo ? '✨' : ''}
           <span class="rar" style="color:${RCOLOR(it.rarity)}">(${RNAME(it.rarity)})</span>
         </div>
       </div>
 
+      ${it.rarity === 'special'
+        ? `<div class="tag special"><span class="tag-dot"></span>Limited</div>`
+        : ''}
+
       ${it.imageUrl
-        ? `<img class="img" src="${it.imageUrl}" alt="${(it.name||'card')}" />`
-        : `<div class="img"></div>`
-      }
+        ? `<img class="img" src="${it.imageUrl}" alt="${it.name || ''}"/>`
+        : `<div class="img"></div>`}
 
       <div class="desc">${it.desc || ''}</div>
 
       <div class="meta">
         <div>Charges: <b>${Number(it.qty||0)}</b></div>
-        <div id="${coolId}">${it.remain > 0 ? ('Cooldown: ' + fmt(it.remain)) : 'Ready'}</div>
+        <div class="cool" id="${coolId}">
+          ${it.remain > 0 ? ('Cooldown: ' + fmt(it.remain)) : 'Ready'}
+        </div>
       </div>
 
       <button class="play" ${it.remain>0 || Number(it.qty||0)<=0 ? 'disabled' : ''}>Play</button>
@@ -808,87 +765,39 @@ function renderGrid(){
 
     grid.appendChild(card);
 
-    // Live cooldown countdown
-    if (it.remain > 0){
-      let left = Number(it.remain) || 0;
-      const label = document.getElementById(coolId);
-
+    if(it.remain > 0){
+      let left = it.remain;
+      const label = card.querySelector(`#${coolId}`);
       const t = setInterval(() => {
         left = Math.max(0, left - 1);
-        if (label) label.textContent = left > 0 ? ('Cooldown: ' + fmt(left)) : 'Ready';
-        if (left === 0){
+        label.textContent = left > 0 ? ('Cooldown: ' + fmt(left)) : 'Ready';
+        if(left === 0){
           btn.disabled = false;
           clearInterval(t);
         }
       }, 1000);
-
       timers.push(t);
     }
   }
 }
 
-/* =========================================================
-   API ACTIONS
-   ========================================================= */
-async function play(cardId){
-  toast('Playing…', 1200);
-  try{
-    const token = await ensureLoginJSONP();
-    const res = await jsonp(API, { action:'redeem', token, cardId });
-
-    if (res && res.ok){
-      toast('Redeemed!');
-      await load();
-    } else {
-      toast('Error: ' + ((res && res.error) || 'failed'), 2400);
-    }
-  } catch(e){
-    console.error(e);
-    toast('Network/auth error', 2400);
-  }
-}
-
-async function openPack(){
-  const u = getUser();
-  if (!u){ toast('Set your Twitch name first', 2200); return; }
-
-  const btn = $('openPackBtn');
-  if (btn) btn.disabled = true;
-
-  toast('Opening pack…', 1200);
-
-  try{
-    const token = await ensureLoginJSONP();
-    const res = await jsonp(API, { action:'openpack', token });
-
-    if (!res || !res.ok){
-      toast('Error: ' + ((res && res.error) || 'cannot open pack'), 2600);
-      return;
-    }
-
-    $('revealTitle').textContent = 'New Cards';
-    showPackReveal(res.cards || []);
-
-  } catch(e){
-    console.error(e);
-    toast('Network error while opening pack', 2600);
-  } finally {
-    // pack count updates on next load
-    await load();
-  }
-}
-
+/* ===================== pack reveal helpers (keep your existing ones) ===================== */
 function showPackReveal(cards){
   const wrap = $('packReveal');
   const box  = $('revealCards');
   const btn  = $('revealClose');
 
-  box.innerHTML = '';
+  if (!wrap || !box || !btn){
+    console.error('Pack reveal DOM missing:', { wrap, box, btn });
+    toast('UI error: pack reveal missing', 2400);
+    return;
+  }
 
+  box.innerHTML = '';
   (cards || []).forEach((c, i) => {
     const rarity = String(c.rarity || 'common').toLowerCase();
     const d = document.createElement('div');
-    d.className = `reveal-card ${c.isHolo ? 'reveal-holo' : ''}`;
+    d.className = `reveal-card r-${rarity} ${c.isHolo ? 'reveal-holo' : ''}`;
     d.style.animationDelay = `${i * 140}ms`;
 
     const safeName = (c.name || c.baseId || 'Card');
@@ -904,24 +813,19 @@ function showPackReveal(cards){
       ${c.imageUrl ? `<img class="reveal-img" src="${c.imageUrl}" alt="${safeName}">` : `<div class="reveal-img"></div>`}
       <div class="reveal-desc">${c.desc || ''}</div>
     `;
-
     box.appendChild(d);
   });
 
   wrap.style.display = 'flex';
-
   btn.onclick = () => {
     wrap.style.display = 'none';
     box.innerHTML = '';
   };
 }
 
-/* =========================================================
-   MAIN LOAD
-   ========================================================= */
+/* ===================== main load ===================== */
 async function load(){
   const u = getUser();
-
   if (!u){
     notice.textContent = 'Enter your Twitch name and press Enter.';
     grid.innerHTML = '';
@@ -940,7 +844,7 @@ async function load(){
       jsonp(API, { action:'summary', token })
     ]);
 
-    if (!inv || !inv.ok){
+    if(!inv || !inv.ok){
       notice.textContent = 'Error: ' + ((inv && inv.error) || 'loading');
       return;
     }
@@ -948,84 +852,106 @@ async function load(){
     INVENTORY = inv.items || [];
     SUM = sum || null;
 
-    // Detect new cards since last snapshot
-    const prev = loadSnapshot();
-    const firstTime = !Object.keys(prev).length;
-    const added = firstTime ? [] : diffNew(prev, INVENTORY);
-    saveSnapshot(INVENTORY);
-
-    // Gift area
-    const giftArea  = $('giftArea');
-    const giftCount = $('giftCount');
-    const showBtn   = $('showNewBtn');
-
-    if (added.length){
-      giftArea.style.display = 'flex';
-      giftCount.textContent = added.reduce((a,x)=>a + (x.delta||0), 0);
-
-      showBtn.onclick = () => {
-        $('revealTitle').textContent = 'New Cards';
-        showPackReveal(added.map(a => ({
-          name: a.name,
-          rarity: a.rarity,
-          isHolo: a.isHolo,
-          imageUrl: a.imageUrl || '',
-          desc: a.desc || ''
-        })));
-        giftArea.style.display = 'none';
-      };
-    } else {
-      giftArea.style.display = 'none';
-    }
-
+    renderGameFilter();  // NEW: mount once
     renderTabs();
     renderStats();
     renderGrid();
 
     notice.textContent = '';
+  }catch(e){
+    const msg = String(e?.message || e);
 
-  } catch(e){
-    const msg = String(e && e.message ? e.message : e);
-    console.error(e);
-
-    if (msg.includes('pin_required_or_invalid')){
+    if (msg.includes("pin_required_or_invalid")){
       notice.textContent = 'PIN incorrect or missing. Use the !cardpin command on stream to get your PIN.';
       clearToken();
-    } else if (msg.includes('invalid_or_expired_token')){
+    } else if (msg.includes("invalid_or_expired_token")){
       notice.textContent = 'Session expired. Enter your PIN again.';
       clearToken();
-    } else if (msg.includes('pin_required')){
-      notice.textContent = 'Enter your Twitch name and PIN, then press Enter.';
+    } else if (msg.includes("missing_user")){
+      notice.textContent = 'Enter your Twitch name and press Enter.';
     } else {
       notice.textContent = 'Error: ' + msg;
+      console.error(e);
     }
   }
 }
 
-/* =========================================================
-   WIRE CONTROLS (single init point)
-   ========================================================= */
-document.addEventListener('DOMContentLoaded', () => {
-  // Mount game filter UI once
-  mountGameFilter();
+async function play(cardId){
+  toast('Playing…', 1200);
+  try{
+    const token = await ensureLoginJSONP();
+    const res = await jsonp(API, { action:'redeem', token, cardId });
 
-  // Populate saved values
+    if(res && res.ok){
+      toast('Redeemed!');
+      load();
+    } else {
+      toast('Error: ' + ((res && res.error) || 'failed'), 2400);
+    }
+  }catch(e){
+    console.error(e);
+    toast('Network/auth error', 2400);
+  }
+}
+
+async function openPack(){
+  const u = getUser();
+  if (!u){
+    toast('Set your Twitch name first', 2200);
+    return;
+  }
+
+  const btn = $('openPackBtn');
+  const animBox = $('packAnim');
+
+  if (btn) btn.disabled = true;
+  if (animBox) animBox.style.display = 'flex';
+
+  toast('Opening pack…', 1200);
+
+  try{
+    const token = await ensureLoginJSONP();
+    const res = await jsonp(API, { action:'openpack', token });
+
+    await new Promise(r => setTimeout(r, 900));
+    if (animBox) animBox.style.display = 'none';
+
+    if (!res || !res.ok){
+      toast('Error: ' + ((res && res.error) || 'cannot open pack'), 2600);
+      return;
+    }
+
+    $('revealTitle').textContent = 'New Cards';
+    showPackReveal(res.cards || []);
+
+    const closeBtn = $('revealClose');
+    if (closeBtn){
+      closeBtn.onclick = async () => {
+        $('packReveal').style.display = 'none';
+        $('revealCards').innerHTML = '';
+        await load();
+      };
+    }
+  }catch(e){
+    console.error(e);
+    if (animBox) animBox.style.display = 'none';
+    toast('Network error while opening pack', 2600);
+  }
+}
+
+/* ===================== wire controls ===================== */
+document.addEventListener('DOMContentLoaded', () => {
   $('uname').value = getUser();
   $('pin').value   = getPin();
 
-  // Initial load
-  load();
-
-  // Open pack
   const btnOpen = $('openPackBtn');
   if (btnOpen) btnOpen.addEventListener('click', openPack);
 
-  // Enter / Save
   $('save').onclick = async () => {
     const uRaw = $('uname').value;
-    const p    = $('pin').value.trim();
-
+    const p = $('pin').value.trim();
     const nextUser = normalizeUser(uRaw);
+
     if (!nextUser){
       toast('Enter your Twitch name', 2200);
       return;
@@ -1034,23 +960,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const prevUser = getUser();
     setUser(nextUser);
 
-    // If user changed, force a clean session.
+    // If user changed, clear auth so you don't reuse someone else's token
     if (nextUser !== prevUser){
       clearToken();
       clearPin();
     }
 
-    // If PIN entered, store temporarily and force new login.
     if (p){
       setPin(p);
-      clearToken();
+      clearToken(); // force login with provided pin
     }
 
     toast('Loading…');
     await load();
   };
 
-  // Show zero toggle
   const t = $('showZeroToggle');
   if (t){
     t.checked = SHOW_ZERO;
@@ -1060,14 +984,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Refresh ..
   $('refresh').onclick = () => load();
-
-  // Live filters
   $('search').addEventListener('input', () => renderGrid());
   $('onlyHolo').addEventListener('change', () => renderGrid());
+
+  load();
 });
 </script>
+
 </body>
 </html> 
+
 
